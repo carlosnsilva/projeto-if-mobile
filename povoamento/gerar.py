@@ -15,8 +15,3 @@ def criaNumero(vezes):
         numeros.append(random.choice(ddd)+"985"+random.choice(meio)+str(criaFinal()))
     
     return numeros
-
-
-result = criaNumero(55)
-for i in result:
-    print(i)
