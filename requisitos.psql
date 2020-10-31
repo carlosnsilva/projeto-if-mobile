@@ -1,32 +1,78 @@
 -- REQUISTO 1
 
-CREATE OR REPLACE FUNCTION FN_GERA_NUMERO_TELEFONE(DDD VARCHAR, PREFIXO VARCHAR)
-RETURNS VARCHAR
-LANGUAGE PLPGSQL
-AS $$
-DECLARE
-NOVO_NUMERO VARCHAR;
-SUFIXO_NUMERO VARCHAR;
-NUMEROS RECORD;
+-- função usada para a criação de chips, recebe o id da operadora e o id do 
+-- seu estado ao qual se deseja gerar chips, não insere:
+-- 1) números repetidos
+-- 2) números terminados em 0000
+-- por padrão quando o chip é criado ele é inativo e disponível, seu plano
+-- é o plano de id 1 que pode ser usado por todas as operadoas
 
-BEGIN
-	--PEGANDO TODOS AS OCORRENCIAS DA TABELA CHIP
-	--SELECT * INTO NUMEROS FROM CHIP;
-	--MÉTODO QUE VAI GERAR OS ÚLTIMOS 4 DIGITOS DO NÚMERO
-	SELECT FLOOR(RANDOM() *10000)::VARCHAR INTO SUFIXO_NUMERO;
-	--CONCATENANDO DDD+PREFIXO+SUFIXO GERADO DE FORMA RANDOM
-	SELECT CONCAT(DDD,PREFIXO,SUFIXO_NUMERO) INTO NOVO_NUMERO;
-	
-	FOR NUMEROS IN SELECT IDNUMERO FROM CHIP LOOP
-		IF NUMEROS.IDNUMERO = NOVO_NUMERO THEN
-			RAISE EXCEPTION 'NUMERO JÁ REGISTRADO NA BASE';
-			
+CREATE OR REPLACE FUNCTION gerar_numero(operadora INT, estado VARCHAR(2))
+RETURNS VARCHAR
+AS $$
+	DECLARE 
+		ddd VARCHAR(2);
+		prefixo VARCHAR(4);
+		complemento VARCHAR(4);
+		numero VARCHAR(11);
+		loopComplemento BOOLEAN = true;
+		loopChip BOOLEAN = true;
+		idpl INT;
+		verificao VARCHAR(11);
+	BEGIN
+		-- Definicao do ddd
+		SELECT es.ddd INTO ddd FROM estado es WHERE es.uf = estado;
+		IF ddd IS null THEN		
+			RETURN 'Estado nao encontrado.';
 		END IF;
-	END LOOP;
-	RETURN NOVO_NUMERO;
-END$$;
-	
-SELECT FN_GERA_NUMERO_TELEFONE('83','99852');
+		
+		-- loop de tentativas para gerar o chip
+		WHILE loopChip = true
+		LOOP
+			-- Definicao do prefixo 985 + (1 ou 2)
+			prefixo := '985' || (CAST ((FLOOR(random()*(2-1+1))+1) AS VARCHAR));
+
+			-- Formacao do corpo do numero
+			complemento := (CAST ((FLOOR(random()*(9-1+1))+1) AS VARCHAR));
+
+			WHILE loopComplemento = true
+			LOOP
+				complemento := (CAST ((FLOOR(random()*(9-1+1))+1) AS VARCHAR));
+				FOR i IN 1..3 BY 1
+				LOOP
+					complemento := complemento || (CAST ((FLOOR(random()*(9-1+1))+1) AS VARCHAR));
+				END LOOP; -- for
+
+				IF complemento != '0000' THEN
+					loopComplemento := FALSE;
+				END IF;
+
+			END LOOP;
+			
+			-- numero completo
+			numero := ddd || prefixo || complemento;
+			
+			-- verificacao se o numero existe no banco
+			SELECT idnumero INTO verificao FROM chip WHERE idnumero = numero;
+			IF verificao is null THEN
+				loopChip := false;
+			END IF;
+		END LOOP;
+
+		-- escolha de um plano aleatorio
+		SELECT idplano INTO idpl FROM plano ORDER BY random() LIMIT 1
+		
+		-- adicao do chip no banco
+		INSERT INTO chip(idnumero, idoperadora, idplano, ativo, disponivel)
+		VALUES (numero, operadora, idpl, 'N', 'S');
+		
+		RETURN 
+		'Chip criado para a operadora ' 
+		|| (select nome from operadora op where op.idoperadora = operadora) 
+		|| ': ' || numero;
+	END
+$$
+LANGUAGE 'plpgsql';
 
 -- REQUSITO 5
 
