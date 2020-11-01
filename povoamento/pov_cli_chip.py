@@ -58,12 +58,12 @@ try:
     for usuario in registros:
         idusuario = usuario[0]
 
-        n_chips = random.randint(1, 5)
-        if n_chips == 1 or n_chips == 2 or n_chips == 3 :
+        n_chips = random.randint(1, 4)
+        if n_chips == 1 or n_chips == 2:
             #linka um chip ao usuario
             ultimoChip = inserir(connection, idusuario, chips, ultimoChip)
         
-        elif n_chips == 4:
+        elif n_chips == 3:
             #linka dois chips ao usuario
             for j in range(2):
                 ultimoChip = inserir(connection, idusuario, chips, ultimoChip)

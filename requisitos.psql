@@ -74,6 +74,18 @@ AS $$
 $$
 LANGUAGE 'plpgsql';
 
+-- REQUISITO 2
+-- função usada para retornar até 5 chips disponiveis ao cliente
+CREATE OR REPLACE FUNCTION numeros_disponiveis()
+RETURNS TABLE (numero CHAR(11))
+AS $$
+	BEGIN
+		RETURN QUERY SELECT idnumero FROM chip WHERE disponivel = 'S' LIMIT 5;
+	END
+$$
+LANGUAGE 'plpgsql';
+
+
 -- REQUSITO 5
 
 CREATE OR REPLACE PROCEDURE PR_ASSOC_NUMERO_CLIENTE(ID_CLIENTE INTEGER, DDD VARCHAR, PREFIXO VARCHAR)
