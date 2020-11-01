@@ -85,6 +85,71 @@ AS $$
 $$
 LANGUAGE 'plpgsql';
 
+-- REQUISITO 3
+
+-- FUNÇAO UTULITARIA QUE RETORNA O NUMERO DE DIAS DE UM MES
+CREATE OR REPLACE FUNCTION ultimo_dia(date)
+RETURNS date AS
+$$
+  SELECT (date_trunc('MONTH', $1) + INTERVAL '1 MONTH - 1 day')::date;
+$$ LANGUAGE 'sql' IMMUTABLE STRICT;
+
+
+-- FUNCAO QUE GERA FATURAS
+CREATE OR REPLACE PROCEDURE gerar_fatura(ano INT, mes INT)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+	-- variaveis de controle
+	chipAtivo RECORD;
+	ligacao RECORD;
+	datafatura DATE;
+	datafinal DATE;
+	existe CHAR(1);
+	pl plano%ROWTYPE;
+	
+	-- variaveis exclusivas da fatura
+	minIn INT;
+	minOut INT;
+	exced NUMERIC(5,2);
+	roaming NUMERIC(5,2);
+	total NUMERIC(7,2);
+	
+BEGIN
+	-- definicao da data da fatura
+	datafatura = ano || '-' || mes || '-01';
+	
+	-- definicao da data do ultimo dia do mes da fatura
+	SELECT ultimo_dia(datafatura) INTO datafinal;
+	
+	-- seleciona todos os chips ativos em uma tabela
+	FOR chipAtivo IN SELECT * FROM chip WHERE ativo = 'S'
+	LOOP
+		-- verificacao se ja existe fatura para esse chip nessa data
+		SELECT pago INTO existe 
+		FROM fatura WHERE referencia = datafatura 
+		AND idnumero = chipativo.idnumero;
+		
+		IF existe IS NULL THEN
+			-- busca pelo plano do chip
+			SELECT * INTO pl FROM plano WHERE idplano = (
+				SELECT idplano FROM chip 
+				WHERE idnumero = chipativo.idnumero
+				LIMIT 1
+			)
+			
+			-- busca por todas as ligacoes do chip
+			FOR ligacao IN SELECT * FROM ligacao li
+			WHERE li.chip_emissor = chipativo.idnumero 
+			AND (li.data >= datafatura AND li.data <= datafinal)
+			LOOP
+				
+			
+			END LOOP
+		END IF;
+	END LOOP;
+END $$;
+
 
 -- REQUSITO 5
 
