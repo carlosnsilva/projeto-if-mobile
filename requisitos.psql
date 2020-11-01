@@ -1,0 +1,208 @@
+-- REQUISTO 1
+
+-- função usada para a criação de chips, recebe o id da operadora e o id do 
+-- seu estado ao qual se deseja gerar chips, não insere:
+-- 1) números repetidos
+-- 2) números terminados em 0000
+-- por padrão quando o chip é criado ele é inativo e disponível, seu plano
+-- é o plano de id 1 que pode ser usado por todas as operadoas
+
+CREATE OR REPLACE FUNCTION gerar_numero(operadora INT, estado VARCHAR(2))
+RETURNS VARCHAR
+AS $$
+	DECLARE 
+		ddd VARCHAR(2);
+		prefixo VARCHAR(4);
+		complemento VARCHAR(4);
+		numero VARCHAR(11);
+		loopComplemento BOOLEAN = true;
+		loopChip BOOLEAN = true;
+		idpl INT;
+		verificao VARCHAR(11);
+	BEGIN
+		-- Definicao do ddd
+		SELECT es.ddd INTO ddd FROM estado es WHERE es.uf = estado;
+		IF ddd IS null THEN		
+			RETURN 'Estado nao encontrado.';
+		END IF;
+		
+		-- loop de tentativas para gerar o chip
+		WHILE loopChip = true
+		LOOP
+			-- Definicao do prefixo 985 + (1 ou 2)
+			prefixo := '985' || (CAST ((FLOOR(random()*(2-1+1))+1) AS VARCHAR));
+
+			-- Formacao do corpo do numero
+			complemento := (CAST ((FLOOR(random()*(9-1+1))+1) AS VARCHAR));
+
+			WHILE loopComplemento = true
+			LOOP
+				complemento := (CAST ((FLOOR(random()*(9-1+1))+1) AS VARCHAR));
+				FOR i IN 1..3 BY 1
+				LOOP
+					complemento := complemento || (CAST ((FLOOR(random()*(9-1+1))+1) AS VARCHAR));
+				END LOOP; -- for
+
+				IF complemento != '0000' THEN
+					loopComplemento := FALSE;
+				END IF;
+
+			END LOOP;
+			
+			-- numero completo
+			numero := ddd || prefixo || complemento;
+			
+			-- verificacao se o numero existe no banco
+			SELECT idnumero INTO verificao FROM chip WHERE idnumero = numero;
+			IF verificao is null THEN
+				loopChip := false;
+			END IF;
+		END LOOP;
+
+		-- escolha de um plano aleatorio
+		SELECT idplano INTO idpl FROM plano ORDER BY random() LIMIT 1
+		
+		-- adicao do chip no banco
+		INSERT INTO chip(idnumero, idoperadora, idplano, ativo, disponivel)
+		VALUES (numero, operadora, idpl, 'N', 'S');
+		
+		RETURN 
+		'Chip criado para a operadora ' 
+		|| (select nome from operadora op where op.idoperadora = operadora) 
+		|| ': ' || numero;
+	END
+$$
+LANGUAGE 'plpgsql';
+
+-- REQUISITO 2
+-- função usada para retornar até 5 chips disponiveis ao cliente
+CREATE OR REPLACE FUNCTION numeros_disponiveis()
+RETURNS TABLE (numero CHAR(11))
+AS $$
+	BEGIN
+		RETURN QUERY SELECT idnumero FROM chip WHERE disponivel = 'S' LIMIT 5;
+	END
+$$
+LANGUAGE 'plpgsql';
+
+-- REQUISITO 3
+
+-- FUNÇAO UTULITARIA QUE RETORNA O NUMERO DE DIAS DE UM MES
+CREATE OR REPLACE FUNCTION ultimo_dia(date)
+RETURNS date AS
+$$
+  SELECT (date_trunc('MONTH', $1) + INTERVAL '1 MONTH - 1 day')::date;
+$$ LANGUAGE 'sql' IMMUTABLE STRICT;
+
+
+-- FUNCAO QUE GERA FATURAS
+CREATE OR REPLACE PROCEDURE gerar_fatura(ano INT, mes INT)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+	-- variaveis de controle
+	chipAtivo RECORD;
+	ligacao RECORD;
+	datafatura DATE;
+	datafinal DATE;
+	existe CHAR(1);
+	pl plano%ROWTYPE;
+	
+	-- variaveis exclusivas da fatura
+	minIn INT;
+	minOut INT;
+	exced NUMERIC(5,2);
+	roaming NUMERIC(5,2);
+	total NUMERIC(7,2);
+	
+BEGIN
+	-- definicao da data da fatura
+	datafatura = ano || '-' || mes || '-01';
+	
+	-- definicao da data do ultimo dia do mes da fatura
+	SELECT ultimo_dia(datafatura) INTO datafinal;
+	
+	-- seleciona todos os chips ativos em uma tabela
+	FOR chipAtivo IN SELECT * FROM chip WHERE ativo = 'S'
+	LOOP
+		-- verificacao se ja existe fatura para esse chip nessa data
+		SELECT pago INTO existe 
+		FROM fatura WHERE referencia = datafatura 
+		AND idnumero = chipativo.idnumero;
+		
+		IF existe IS NULL THEN
+			-- busca pelo plano do chip
+			SELECT * INTO pl FROM plano WHERE idplano = (
+				SELECT idplano FROM chip 
+				WHERE idnumero = chipativo.idnumero
+				LIMIT 1
+			)
+			
+			-- busca por todas as ligacoes do chip
+			FOR ligacao IN SELECT * FROM ligacao li
+			WHERE li.chip_emissor = chipativo.idnumero 
+			AND (li.data >= datafatura AND li.data <= datafinal)
+			LOOP
+				
+			
+			END LOOP
+		END IF;
+	END LOOP;
+END $$;
+
+
+-- REQUSITO 5
+
+CREATE OR REPLACE PROCEDURE PR_ASSOC_NUMERO_CLIENTE(ID_CLIENTE INTEGER, DDD VARCHAR, PREFIXO VARCHAR)
+LANGUAGE PLPGSQL
+AS $$
+DECLARE
+	IS_CANCELADO VARCHAR;
+	NUMERO VARCHAR;
+	OPERADORA_CLIENTE INTEGER;
+	PLANO_CLIENTE INTEGER;
+BEGIN
+	SELECT CLIENTE.CANCELADO INTO IS_CANCELADO FROM CLIENTE WHERE CLIENTE.IDCLIENTE = ID_CLIENTE;
+	IF IS_CANCELADO = 'N' THEN
+		-- GERANDO O NUMERO TELEFONICO E PEGANDO UM PLANO,OPERADORA PARA SER INSERIDO
+		SELECT FN_GERA_NUMERO_TELEFONE(DDD, PREFIXO) INTO NUMERO;
+		SELECT * INTO PLANO_CLIENTE FROM (SELECT IDPLANO FROM PLANO ORDER BY RANDOM() LIMIT 1) AS "PLANO";
+		SELECT * INTO OPERADORA_CLIENTE FROM(SELECT IDOPERADORA FROM OPERADORA ORDER BY RANDOM() LIMIT 1) AS "OPERADORA_CLIENTE";
+		--INSERINDO NA TABELA CHIP
+		INSERT INTO CHIP(IDNUMERO, IDOPERADORA, DISPONIVEL, IDPLANO, ATIVO)
+		VALUES(NUMERO, OPERADORA_CLIENTE, PLANO_CLIENTE, 'N','S');
+		COMMIT;
+		--INSERINDO NA TABELA CLIENTE_CHIP
+		INSERT INTO CLIENTE_CHIP(IDNUMERO, IDCLIENTE)
+		VALUES(NUMERO,IDCLIENTE);
+		COMMIT;
+	ELSE
+		RAISE EXCEPTION 'O CLIENTE APRESENTA O STATUS CANCELADO';
+	END IF;
+END $$;
+
+
+--VIEW 1
+CREATE OR REPLACE VIEW VW_1
+AS SELECT PLANO.IDPLANO, PLANO.DESCRICAO, COUNT(CHIP.IDPLANO) AS QUANT_PLANOS_ATIVOS,(COUNT(CHIP.*)*PLANO.VALOR) AS VALOR_ARRECADADO
+FROM PLANO JOIN CHIP
+ON PLANO.IDPLANO = CHIP.IDPLANO
+GROUP BY PLANO.IDPLANO, CHIP.ATIVO, CHIP.IDPLANO
+HAVING CHIP.ATIVO = 'S';
+
+
+--VIEW 3
+CREATE OR REPLACE VIEW VW_3
+AS
+SELECT CLIENTE.IDCLIENTE, CLIENTE.NOME, ESTADO.UF, CHIP.IDNUMERO,PLANO.DESCRICAO, TO_CHAR(current_date - datacadastro, 'MM/YYYY') AS Tempo_na_empresa
+FROM CLIENTE JOIN CIDADE
+ON CLIENTE.IDCIDADE = CIDADE.IDCIDADE
+JOIN ESTADO
+ON ESTADO.UF = CIDADE.UF
+JOIN CLIENTE_CHIP
+ON CLIENTE.IDCLIENTE = CLIENTE_CHIP.IDCLIENTE
+JOIN CHIP
+ON CHIP.IDNUMERO = CLIENTE_CHIP.IDNUMERO
+JOIN PLANO
+ON CHIP.IDPLANO = PLANO.IDPLANO
+WHERE CLIENTE.CANCELADO = 'N'
