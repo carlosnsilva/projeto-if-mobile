@@ -172,6 +172,8 @@ BEGIN
 END $$ 
 LANGUAGE plpgsql;
 
+
+
 -- FUNCAO DE SUPORTE: retorna um record com os dados do plano
 -- de um numero 
 CREATE OR REPLACE FUNCTION get_plano(numero VARCHAR(11))
@@ -192,6 +194,7 @@ END $$
 LANGUAGE plpgsql;
 
 
+
 -- PROCEDURE QUE GERA FATURAS
 CREATE OR REPLACE PROCEDURE gerar_faturas(ano INT, mes INT)
 LANGUAGE plpgsql
@@ -203,11 +206,15 @@ DECLARE
 	datafatura DATE;
 	datafinal DATE;
 	existe CHAR(1);
-	pl plano%ROWTYPE;
+	pl RECORD;
+	mesma_op BOOLEAN;
+	timeVar TIME;
 	
 	-- variaveis exclusivas da fatura
-	minIn INT;
-	minOut INT;
+	taxa_roaming NUMERIC(5,2);
+	taxa_Exced NUMERIC(5,2);
+	minIn TIME;
+	minOut TIME;
 	exced NUMERIC(5,2);
 	roaming NUMERIC(5,2);
 	total NUMERIC(7,2);
@@ -229,34 +236,58 @@ BEGIN
 		
 		IF existe IS NULL THEN
 			-- busca pelo plano do chip
-			SELECT * INTO pl FROM plano WHERE idplano = (
-				SELECT idplano FROM chip 
-				WHERE idnumero = chip.idnumero
-				LIMIT 1
-			)
-			
+			pl := get_plano(chip.idnumero);
+						
 			-- adicao dos dados do plano nas variaveis da fatura
-			minIn := pl.fminin
-			minOut := pl.fminout
-			total := pl.valor
+			SELECT int_ToMin(pl.fminin) INTO minIn;
 			
-			-- busca por todas as ligacoes do chip feitas no periodo
-			-- da fatura
+			raise notice '%', minIn;
+			
+			SELECT int_toMin(pl.fminout) INTO minout;
+			
+			SELECT taf.valor INTO taxa_roaming 
+			FROM plano_tarifa plt INNER JOIN tarifa taf	ON taf.idtarifa = plt.idtarifa 
+			WHERE plt.idplano = 1 AND taf.descricao = 'Uso de roaming';
+			
+			SELECT taf.valor INTO taxa_Exced
+			FROM plano_tarifa plt INNER JOIN tarifa taf ON taf.idtarifa = plt.idtarifa
+			WHERE plt.idplano = 1 AND taf.descricao = 'Exceder minutos do plano';
+			
+			total := pl.valor;
+						
+			-- loop por todas as ligacoes do chip feitas no periodo da fatura
 			FOR ligacao IN SELECT * FROM ligacao li
 			WHERE li.chip_emissor = chip.idnumero 
 			AND (li.data >= datafatura AND li.data <= datafinal)
 			LOOP
 				-- verificacao se a ligacao foi feita para a mesma operadora
-				
-							
+				SELECT mesma_operadora(ligacao.chip_emissor, ligacao.chip_receptor) INTO mesma_op;
+				IF mesma_op THEN
+					IF ligacao.duracao <= minIn THEN
+						minIn := minIn - ligacao.duracao ;
+					ELSE
+						minIn := 0;
+						timevar := ligacao.duracao - minIn;
+						exced := exced + minTo_Val(taxa_Exced, timeVar);
+					END IF;
+				ELSE
+					roaming := roaming + taxa_roaming;
+					IF ligacao.duracao <= minOut THEN
+						minOut := minOut - ligacao.duracao;						
+					ELSE
+						minOut := 0;
+						timevar := ligacao.duracao - minOut;
+						exced := exced + minTo_Val(taxa_Exced, timeVar);
+					END IF;				
+				END IF;
+			END LOOP;
 			
-			END LOOP
+			-- adicao dos resultados no total da fatura
+			total := total + roaming + exced;
+			
 		END IF;
 	END LOOP;
 END $$;
-
-select * from plano
-
 
 
 -- REQUSITO 5
