@@ -13,7 +13,7 @@ AS $$
 	DECLARE 
 		ddd VARCHAR(2);
 		prefixo VARCHAR(4);
-		complemento VARCHAR(4);
+		complemento VARCHAR;
 		numero VARCHAR(11);
 		loopComplemento BOOLEAN = true;
 		loopChip BOOLEAN = true;
@@ -46,7 +46,7 @@ AS $$
 				IF complemento != '0000' THEN
 					loopComplemento := FALSE;
 				END IF;
-
+				complemento := (CAST ((FLOOR(random()*(9-1+1))+1) AS VARCHAR)) || complemento;
 			END LOOP;
 			
 			-- numero completo
@@ -60,7 +60,7 @@ AS $$
 		END LOOP;
 
 		-- escolha de um plano aleatorio
-		SELECT idplano INTO idpl FROM plano ORDER BY random() LIMIT 1
+		SELECT idplano INTO idpl FROM plano ORDER BY random() LIMIT 1;
 		
 		-- adicao do chip no banco
 		INSERT INTO chip(idnumero, idoperadora, idplano, ativo, disponivel)
