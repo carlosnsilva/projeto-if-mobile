@@ -74,6 +74,8 @@ AS $$
 $$
 LANGUAGE 'plpgsql';
 
+
+
 -- REQUISITO 2
 -- função usada para retornar até 5 chips disponiveis ao cliente
 CREATE OR REPLACE FUNCTION numeros_disponiveis()
@@ -84,6 +86,8 @@ AS $$
 	END
 $$
 LANGUAGE 'plpgsql';
+
+
 
 -- REQUISITO 3
 
@@ -120,7 +124,10 @@ BEGIN
 END $$ 
 LANGUAGE plpgsql;
 
--- FUNCAO DE SUPORTE: retorna um numero inteiro em minutos
+
+
+-- FUNCAO DE SUPORTE: retorna um numero inteiro para cada minuto
+-- de uma variavel time
 CREATE OR REPLACE FUNCTION int_ToMin(inteiro INT)
 RETURNS TIME
 AS $$
@@ -134,6 +141,8 @@ BEGIN
 	RETURN minutos;
 END $$ 
 LANGUAGE plpgsql;
+
+
 
 -- FUNCAO DE SUPORTE: recebe uma taxa e uma duracao em formato de tempo
 -- retorna o custo dessa duracao multiplicado pela taxa
@@ -162,6 +171,26 @@ BEGIN
 	RETURN contador * taxaPorMin;
 END $$ 
 LANGUAGE plpgsql;
+
+-- FUNCAO DE SUPORTE: retorna um record com os dados do plano
+-- de um numero 
+CREATE OR REPLACE FUNCTION get_plano(numero VARCHAR(11))
+RETURNS RECORD
+AS $$
+DECLARE
+	plano RECORD;
+BEGIN
+	SELECT pla.fminin, pla.fminout, pla.valor, ch1.idnumero 
+	INTO plano FROM plano pla INNER JOIN chip ch1 ON ch1.idplano = pla.idplano	
+	WHERE pla.idplano = (
+		SELECT idplano FROM chip ch
+		WHERE ch.idnumero = numero
+		LIMIT 1
+	);
+	RETURN plano;
+END $$ 
+LANGUAGE plpgsql;
+
 
 -- PROCEDURE QUE GERA FATURAS
 CREATE OR REPLACE PROCEDURE gerar_faturas(ano INT, mes INT)
