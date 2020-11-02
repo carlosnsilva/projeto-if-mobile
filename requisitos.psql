@@ -85,7 +85,7 @@ AS $$
 $$
 LANGUAGE 'plpgsql';
 
--- REQUISITO 3
+-- REQUISITO 3 (INCOMPLETO)
 
 -- FUNÇAO UTULITARIA QUE RETORNA O NUMERO DE DIAS DE UM MES
 CREATE OR REPLACE FUNCTION ultimo_dia(date)
@@ -95,13 +95,17 @@ $$
 $$ LANGUAGE 'sql' IMMUTABLE STRICT;
 
 
--- FUNCAO QUE GERA FATURAS
-CREATE OR REPLACE PROCEDURE gerar_fatura(ano INT, mes INT)
+-- FUNÇÃO DE SUPORTE recebe dois chips e retorna true caso 
+-- os dois pertencam a mesma operadora e false caso contrario
+CREATE OR REPLACE FUNCTION mesma_operadora(emissor VARCHAR(11), )
+
+-- PROCEDURE QUE GERA FATURAS
+CREATE OR REPLACE PROCEDURE gerar_faturas(ano INT, mes INT)
 LANGUAGE plpgsql
 AS $$
 DECLARE
 	-- variaveis de controle
-	chipAtivo RECORD;
+	chip RECORD;
 	ligacao RECORD;
 	datafatura DATE;
 	datafinal DATE;
@@ -123,32 +127,43 @@ BEGIN
 	SELECT ultimo_dia(datafatura) INTO datafinal;
 	
 	-- seleciona todos os chips ativos em uma tabela
-	FOR chipAtivo IN SELECT * FROM chip WHERE ativo = 'S'
+	FOR chip IN SELECT * FROM chip WHERE ativo = 'S'
 	LOOP
 		-- verificacao se ja existe fatura para esse chip nessa data
 		SELECT pago INTO existe 
 		FROM fatura WHERE referencia = datafatura 
-		AND idnumero = chipativo.idnumero;
+		AND idnumero = chip.idnumero;
 		
 		IF existe IS NULL THEN
 			-- busca pelo plano do chip
 			SELECT * INTO pl FROM plano WHERE idplano = (
 				SELECT idplano FROM chip 
-				WHERE idnumero = chipativo.idnumero
+				WHERE idnumero = chip.idnumero
 				LIMIT 1
 			)
 			
-			-- busca por todas as ligacoes do chip
+			-- adicao dos dados do plano nas variaveis da fatura
+			minIn := pl.fminin
+			minOut := pl.fminout
+			total := pl.valor
+			
+			-- busca por todas as ligacoes do chip feitas no periodo
+			-- da fatura
 			FOR ligacao IN SELECT * FROM ligacao li
-			WHERE li.chip_emissor = chipativo.idnumero 
+			WHERE li.chip_emissor = chip.idnumero 
 			AND (li.data >= datafatura AND li.data <= datafinal)
 			LOOP
+				-- verificacao se a ligacao foi feita para a mesma operadora
 				
+							
 			
 			END LOOP
 		END IF;
 	END LOOP;
 END $$;
+
+select * from plano
+
 
 
 -- REQUSITO 5
