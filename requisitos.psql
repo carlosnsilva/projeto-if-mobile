@@ -91,12 +91,14 @@ LANGUAGE 'plpgsql';
 
 -- REQUISITO 3
 
+
 -- FUNÇAO DE SUPORTE: recebe uma data e retorna a data do ultimo dia de um mes.
 CREATE OR REPLACE FUNCTION ultimo_dia(date)
 RETURNS date AS
 $$
   SELECT (date_trunc('MONTH', $1) + INTERVAL '1 MONTH - 1 day')::date;
 $$ LANGUAGE 'sql' IMMUTABLE STRICT;
+
 
 
 -- FUNÇÃO DE SUPORTE: recebe dois chips e retorna true caso os dois pertencam
@@ -209,24 +211,30 @@ DECLARE
 	pl RECORD;
 	mesma_op BOOLEAN;
 	timeVar TIME;
+	mes_anterior DATE;
+	anterior_pago CHAR(1);
+	anterior_val NUMERIC(7,2);
 	
 	-- variaveis exclusivas da fatura
 	taxa_roaming NUMERIC(5,2);
 	taxa_Exced NUMERIC(5,2);
-	minIn TIME;
-	minOut TIME;
+	minIn_dispo TIME;
+	minIn_usado TIME;
+	minOut_dispo TIME;
+	minOut_usado TIME;
 	exced NUMERIC(5,2);
 	roaming NUMERIC(5,2);
 	total NUMERIC(7,2);
 	
 BEGIN
-	-- definicao da data da fatura
+	-- definicao das datas das faturas
 	datafatura = ano || '-' || mes || '-01';
+	mes_anterior = date_trunc('month', datafatura - interval '1' month);
 	
 	-- definicao da data do ultimo dia do mes da fatura
 	SELECT ultimo_dia(datafatura) INTO datafinal;
 	
-	-- seleciona todos os chips ativos em uma tabela
+	-- loop por todos os chips ativos
 	FOR chip IN SELECT * FROM chip WHERE ativo = 'S'
 	LOOP
 		-- verificacao se ja existe fatura para esse chip nessa data
@@ -239,11 +247,15 @@ BEGIN
 			pl := get_plano(chip.idnumero);
 						
 			-- adicao dos dados do plano nas variaveis da fatura
-			SELECT int_ToMin(pl.fminin) INTO minIn;
+			SELECT int_ToMin(pl.fminin) INTO minIn_dispo;
+						
+			SELECT int_toMin(pl.fminout) INTO minout_dispo;
 			
-			raise notice '%', minIn;
+			minIn_usado :=  '00:00:00';
+			minOut_usado := '00:00:00';
 			
-			SELECT int_toMin(pl.fminout) INTO minout;
+			exced := 0;
+			roaming := 0;
 			
 			SELECT taf.valor INTO taxa_roaming 
 			FROM plano_tarifa plt INNER JOIN tarifa taf	ON taf.idtarifa = plt.idtarifa 
@@ -254,7 +266,7 @@ BEGIN
 			WHERE plt.idplano = 1 AND taf.descricao = 'Exceder minutos do plano';
 			
 			total := pl.valor;
-						
+			
 			-- loop por todas as ligacoes do chip feitas no periodo da fatura
 			FOR ligacao IN SELECT * FROM ligacao li
 			WHERE li.chip_emissor = chip.idnumero 
@@ -263,31 +275,49 @@ BEGIN
 				-- verificacao se a ligacao foi feita para a mesma operadora
 				SELECT mesma_operadora(ligacao.chip_emissor, ligacao.chip_receptor) INTO mesma_op;
 				IF mesma_op THEN
-					IF ligacao.duracao <= minIn THEN
-						minIn := minIn - ligacao.duracao ;
+					minIn_usado := minIn_usado::interval + ligacao.duracao::interval;
+					IF ligacao.duracao <= minIn_dispo THEN
+						minIn_dispo := minIn_dispo - ligacao.duracao;
 					ELSE
-						minIn := 0;
-						timevar := ligacao.duracao - minIn;
+						minIn_dispo := '00:00:00';
+						timevar := ligacao.duracao - minIn_dispo;						
 						exced := exced + minTo_Val(taxa_Exced, timeVar);
 					END IF;
 				ELSE
 					roaming := roaming + taxa_roaming;
-					IF ligacao.duracao <= minOut THEN
-						minOut := minOut - ligacao.duracao;						
+					minOut_usado := minOut_usado::interval + ligacao.duracao::interval;
+					IF ligacao.duracao <= minOut_dispo THEN
+						minOut_dispo := minOut_dispo - ligacao.duracao;
 					ELSE
-						minOut := 0;
-						timevar := ligacao.duracao - minOut;
+						minOut_dispo := '00:00:00';						
+						timevar := ligacao.duracao - minOut_dispo;
 						exced := exced + minTo_Val(taxa_Exced, timeVar);
-					END IF;				
+					END IF;	
 				END IF;
 			END LOOP;
 			
-			-- adicao dos resultados no total da fatura
+			-- adicao dos resultados no total da fatura			
 			total := total + roaming + exced;
+			
+			-- soma do valor total com o valor da fatura anterior caso a mesma 
+			-- nao tenha sido paga
+			SELECT fat.pago, fat.total FROM fatura fat
+			WHERE referencia = mes_anterior
+			AND idnumero = chip.idnumero
+			INTO anterior_pago, anterior_val;
+			
+			IF anterior_pago = 'N' THEN
+				total := total + anterior_val;
+			END IF;
+			
+			INSERT INTO fatura(referencia, idnumero, valor_plano, tot_min_int, tot_min_ext,
+			tx_min_exced, tx_roaming, total, pago) VALUES (datafatura, chip.idnumero, pl.valor,
+			minIn_usado, minOut_usado, exced, roaming, total, 'S');
 			
 		END IF;
 	END LOOP;
 END $$;
+
 
 
 -- REQUSITO 5
