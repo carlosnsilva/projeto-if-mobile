@@ -48,7 +48,7 @@ def povoar_chips(nchips = 10):
     db = 'ifmobile'
     usr = 'postgres'
     senha = '@1b2c3d4'
-    nchips = 35
+    nchips = 0
 
     print (
         "\n\n------------------ AVISO ------------------\n"
