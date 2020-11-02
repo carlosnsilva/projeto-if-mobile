@@ -85,9 +85,9 @@ AS $$
 $$
 LANGUAGE 'plpgsql';
 
--- REQUISITO 3 (INCOMPLETO)
+-- REQUISITO 3
 
--- FUNÇAO UTULITARIA QUE RETORNA O NUMERO DE DIAS DE UM MES
+-- FUNÇAO DE SUPORTE: recebe uma data e retorna a data do ultimo dia de um mes.
 CREATE OR REPLACE FUNCTION ultimo_dia(date)
 RETURNS date AS
 $$
@@ -95,9 +95,46 @@ $$
 $$ LANGUAGE 'sql' IMMUTABLE STRICT;
 
 
--- FUNÇÃO DE SUPORTE recebe dois chips e retorna true caso 
--- os dois pertencam a mesma operadora e false caso contrario
-CREATE OR REPLACE FUNCTION mesma_operadora(emissor VARCHAR(11), )
+-- FUNÇÃO DE SUPORTE: recebe dois chips e retorna true caso os dois pertencam
+-- a mesma operadora e false caso contrario ou em caso de erro
+CREATE OR REPLACE FUNCTION mesma_operadora(chip_1 VARCHAR(11), chip_2 VARCHAR(11))
+RETURNS BOOLEAN
+AS $$
+DECLARE
+	operadora_1 INT;
+	operadora_2 INT;
+BEGIN
+	-- operadora do primeiro chip
+	SELECT idoperadora INTO operadora_1
+	FROM CHIP WHERE idnumero = chip_1;
+
+	-- operadora do segundo chip
+	SELECT idoperadora INTO operadora_2
+	FROM CHIP WHERE idnumero = chip_2;
+	
+	IF operadora_1 = operadora_2 THEN
+		RETURN true;
+	ELSE
+		RETURN false;
+	END IF;
+END $$ 
+LANGUAGE plpgsql;
+
+-- FUNCAO DE SUPORTE: retorna um numero inteiro em minutos
+CREATE OR REPLACE FUNCTION int_ToMin(inteiro INT)
+RETURNS TIME
+AS $$
+DECLARE
+	minutos TIME = '00:00:00';
+BEGIN
+	FOR i IN 1..inteiro BY 1
+	LOOP
+		minutos := minutos + '00:01:00';
+	END LOOP;
+	RETURN minutos;
+END $$ 
+LANGUAGE plpgsql;
+
 
 -- PROCEDURE QUE GERA FATURAS
 CREATE OR REPLACE PROCEDURE gerar_faturas(ano INT, mes INT)
