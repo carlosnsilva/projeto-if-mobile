@@ -1,4 +1,4 @@
--- REQUISTO 1
+-- REQUISITO 1
 
 -- função usada para a criação de chips, recebe o id da operadora e o id do 
 -- seu estado ao qual se deseja gerar chips, não insere:
