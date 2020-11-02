@@ -135,6 +135,33 @@ BEGIN
 END $$ 
 LANGUAGE plpgsql;
 
+-- FUNCAO DE SUPORTE: recebe uma taxa e uma duracao em formato de tempo
+-- retorna o custo dessa duracao multiplicado pela taxa
+CREATE OR REPLACE FUNCTION minTo_Val(taxaPorMin NUMERIC, duracao TIME)
+RETURNS NUMERIC
+AS $$
+DECLARE
+	contador INT = 0;
+	horas INT;
+	minutos INT;
+	segundos INT;
+BEGIN
+	SELECT INTO segundos CAST((EXTRACT (SECOND FROM duracao)) AS INT);
+	SELECT INTO minutos CAST((EXTRACT (MINUTE FROM duracao)) AS INT);
+	SELECT INTO horas CAST((EXTRACT (HOUR FROM duracao)) AS INT);
+	
+	-- de segundos para o contador
+	IF segundos >= 30 THEN 
+		contador := contador + 1;
+	END IF;
+	-- minutos para o contador
+	contador := contador + minutos;
+	
+	-- de horas para o contador
+	contador := contador + (horas * 60);
+	RETURN contador * taxaPorMin;
+END $$ 
+LANGUAGE plpgsql;
 
 -- PROCEDURE QUE GERA FATURAS
 CREATE OR REPLACE PROCEDURE gerar_faturas(ano INT, mes INT)
