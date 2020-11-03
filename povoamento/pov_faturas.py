@@ -4,6 +4,9 @@ import psycopg2 as pg
 def povoar():
     connection = pg.connect(host='127.0.0.1', dbname='ifmobile', user='postgres', password='@1b2c3d4', port='5432')
 
+    print("\n\nATENCAO: PARA EXECUTAR ESTE PROGRAMA A PROCEDURE \ngerar_faturas NÃO DEVE TER CONTROLE TRANSACIONAL.\n\n")
+    input("Enter para continuar >>")
+
     # Busca pela primeira ligacao
     cursor = connection.cursor()
     cursor.execute('SELECT li.data FROM ligacao li ORDER BY li.data LIMIT 1;')

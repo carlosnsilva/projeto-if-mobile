@@ -58,20 +58,22 @@ try:
     for usuario in registros:
         idusuario = usuario[0]
 
-        n_chips = random.randint(1, 4)
-        if n_chips == 1 or n_chips == 2:
+        n_chips = random.randint(1, 100)
+        if n_chips <= 70:
             #linka um chip ao usuario
             ultimoChip = inserir(connection, idusuario, chips, ultimoChip)
         
-        elif n_chips == 3:
+        elif n_chips <= 90:
             #linka dois chips ao usuario
             for j in range(2):
                 ultimoChip = inserir(connection, idusuario, chips, ultimoChip)
 
-        else:
+        elif n_chips <= 97:
             #linka tres chips ao usuario
             for j in range(3):
                 ultimoChip = inserir(connection, idusuario, chips, ultimoChip)
+
+        # entre 97 e 100 nao sao linkados chips ao usuario
 
 
     connection.commit()
