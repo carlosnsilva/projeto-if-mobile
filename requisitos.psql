@@ -333,6 +333,7 @@ BEGIN
 				'S'
 			);
 		END IF;
+		COMMIT;
 	END LOOP;
 	COMMIT;
 END $$;
