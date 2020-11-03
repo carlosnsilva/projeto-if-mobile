@@ -1,35 +1,132 @@
 -- INSERTS NA TABELA TARIFA;
-INSERT INTO tarifa(descricao, valor) VALUES
-('Exceder minutos do plano', 1.00),
-('Uso de roaming', 1.15),
-('Exceder minutos do plano', 1.30),
-('Uso de roaming', 1.45),
-('Exceder minutos do plano', 1.60),
-('Uso de roaming', 1.80),
-('Exceder minutos do plano', 2.00),
-('Uso de roaming', 2.20);
 
+INSERT INTO TARIFA(DESCRICAO, VALOR) 
+VALUES( 'Exceder minutos do plano', 1.00);
+
+INSERT INTO TARIFA(DESCRICAO, VALOR) 
+VALUES('Uso de roaming', 1.15);
+
+INSERT INTO TARIFA(DESCRICAO, VALOR) 
+VALUES('Exceder minutos do plano', 1.30);
+
+INSERT INTO TARIFA(DESCRICAO, VALOR) 
+VALUES('Uso de roaming', 1.45);
+
+INSERT INTO TARIFA(DESCRICAO, VALOR) 
+VALUES('Exceder minutos do plano', 1.60);
+
+INSERT INTO TARIFA(DESCRICAO, VALOR) 
+VALUES('Uso de roaming', 1.80);
+
+INSERT INTO TARIFA(DESCRICAO, VALOR) 
+VALUES('Exceder minutos do plano', 2.00);
+
+INSERT INTO TARIFA(DESCRICAO, VALOR) 
+VALUES('Uso de roaming', 2.20);
 
 -- INSERTS TABELA PLANO
-INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR) VALUES
-('PLANO PROMO-OPERADORA', 190, 180, 15.00),
-('PLANO DIFERENTE OPERADORA', 150, 130, 60.00),
-('PLANO MESMO ESTADO', 500, 300, 100.00),
-('PLANO DIFERENTE ESTADO', 200, 190, 10.00),
-('PLANO DIFERENTE ESTADO-LIMITADO', 120, 100, 40.00),
-('PLANO TOTAL ILIMITADO', 400, 300, 75.00),
-('PLANO PAÍS INTERNACIONAL',200, 160, 20.00),
-('PLANO DENTRO DO PAÍS', 170, 160, 35.00),
-('PLANO FAMILIA MESMA OPERADORA', 600, 300, 55.00),
-('PLANO MAE FELIZ', 170, 180, 20.00),
-('PLANO DIA DOS PAIS', 110, 140, 45.00),
-('PLANO FINAL DE ANO', 400, 800, 80.00),
-('PLANO ESPECIAL NATAL', 150, 200, 13.00),
-('PLANO ESPECIAL NATAL FAMILIA ', 90, 90, 42.00),
-('PLANO CARNAVAL', 1000, 500, 120.00),
-('PLANO CARNAVAL FOLIA', 1200, 1200, 195.00),
-('PLANO CARNAVAL SEM FOLIA', 300, 200, 80.00),
-('PLANO MESMA OPERADORA', 90, 80, 20.00);
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR) 
+VALUES ('PLANO PROMO-OPERADORA', 190, 180, 15.00);
+
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('PLANO DIFERENTE OPERADORA', 150, 130, 60.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('PLANO MESMO ESTADO', 500, 300, 100.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('PLANO DIFERENTE ESTADO', 200, 190, 10.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('PLANO DIFERENTE ESTADO-LIMITADO', 120, 100, 40.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('PLANO TOTAL ILIMITADO', 400, 300, 75.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('PLANO PAÍS INTERNACIONAL',200, 160, 20.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('PLANO DENTRO DO PAÍS', 170, 160, 35.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('PLANO FAMILIA MESMA OPERADORA', 600, 300, 55.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('PLANO MAE FELIZ', 170, 180, 20.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('PLANO DIA DOS PAIS', 110, 140, 45.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('PLANO FINAL DE ANO', 400, 800, 80.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('PLANO ESPECIAL NATAL', 150, 200, 13.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('PLANO ESPECIAL NATAL FAMILIA ', 90, 90, 42.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('PLANO CARNAVAL', 1000, 500, 120.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('PLANO CARNAVAL FOLIA', 1200, 1200, 195.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('PLANO CARNAVAL SEM FOLIA', 300, 200, 80.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('PLANO MESMA OPERADORA', 90, 80, 20.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('Plano Generalista', 19, 20, 20.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('Plano Oi Basic', 18, 19, 15.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('Plano Oi equilibrio', 13, 15, 60.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('Plano Oi Completo', 3, 5, 100.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('Plano Tim Padrao', 19, 20, 10.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('Plano Tim Flex', 10, 12, 40.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('Plano Tim Full', 2, 7, 75.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('Plano Algar Starter', 16, 20, 20.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('Plano Algar Mid', 14, 16, 35.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('Plano Algar End Combo', 3, 6, 55.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('Plano Claro Simples', 17, 18, 20.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('Plano Claro Custo Equilibrio', 11, 14, 45.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('Plano Claro Pacote Total', 4, 8, 80.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('Plano Vivo Init', 15, 20, 13.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('Plano Vivo Equilibrio Controle', 9, 9, 42.00);
+
+INSERT INTO PLANO(DESCRICAO,FMININ,FMINOUT,VALOR)
+VALUES('Plano Vivo At Max', 1, 2, 120.00);
 
 
 -- INSERTS NA TABELA PLANO_TARIFA
@@ -135,113 +232,324 @@ INSERT INTO ESTADO (UF, NOME, DDD, IDREGIAO) VALUES
 
 
 -- TABELA OPERADORA
-INSERT INTO OPERADORA(NOME) VALUES
-('OPERADORA MAIS VOCE'),
-('OPERADORA LIGUE-MAIS'),
-('OPERADORA GANHE-MAIS'),
-('OPERADORA LIGOU-GANHOU'),
-('OPERADORA TERRA'),
-('OPERADORA GAMBI'),
-('OPERADORA FALOU-GANHOU'),
-('OPERADORA NEXT-LINK'),
-('OPERADORA SEM BARREIRA'),
-('OPERADORA ALLLOW'),
-('OPERADORA DISSE-LUCROU');
+INSERT INTO OPERADORA(NOME) 
+VALUES(' OPERADORA MAIS VOCE');
 
+INSERT INTO OPERADORA(NOME)
+VALUES('OPERADORA LIGUE-MAIS');
+
+INSERT INTO OPERADORA(NOME)
+VALUES('OPERADORA GANHE-MAIS');
+
+INSERT INTO OPERADORA(NOME)
+VALUES('OPERADORA LIGOU-GANHOU');
+
+INSERT INTO OPERADORA(NOME)
+VALUES('OPERADORA TERRA');
+
+INSERT INTO OPERADORA(NOME)
+VALUES('OPERADORA GAMBI');
+
+INSERT INTO OPERADORA(NOME)
+VALUES('OPERADORA FALOU-GANHOU');
+
+INSERT INTO OPERADORA(NOME)
+VALUES('OPERADORA NEXT-LINK');
+
+INSERT INTO OPERADORA(NOME)
+VALUES('OPERADORA SEM BARREIRA');
+
+INSERT INTO OPERADORA(NOME)
+VALUES('OPERADORA ALLLOW');
+
+INSERT INTO OPERADORA(NOME)
+VALUES('OPERADORA DISSE-LUCROU');
+
+INSERT INTO OPERADORA(NOME)
+VALUES('Oi');
+
+INSERT INTO OPERADORA(NOME)
+VALUES('Tim');
+
+INSERT INTO OPERADORA(NOME)
+VALUES('Vivo');
+
+INSERT INTO OPERADORA(NOME)
+VALUES('Claro');
+
+INSERT INTO OPERADORA(NOME)
+VALUES('Algar');
 
 -- TABELA CHIP (MODIFICADO POR HENRIQUE)
-INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel) VALUES
-('11985246734',11,16,'N','S'),
-('11985292569',11,9,'N','S'),
-('21985159186',8,7,'N','S'),
-('21985186245',4,10,'S','N'),
-('27985116316',6,18,'S','N'),
-('27985137561',2,1,'S','N'),
-('27985151776',9,9,'N','S'),
-('27985195583',2,1,'S','N'),
-('27985232638',4,12,'S','N'),
-('41985117471',7,12,'S','N'),
-('41985213456',5,13,'S','N'),
-('41985241273',7,7,'N','S'),
-('48985128947',5,1,'N','S'),
-('48985193278',11,9,'S','N'),
-('48985255414',1,18,'S','N'),
-('51985234479',6,3,'N','S'),
-('61985191785',1,12,'N','S'),
-('61985215533',10,11,'S','N'),
-('61985244124',4,15,'N','S'),
-('62985119973',4,2,'N','S'),
-('62985231551',7,8,'S','N'),
-('62985267521',8,8,'S','N'),
-('62985272558',2,6,'S','N'),
-('62985294526',4,10,'S','N'),
-('63985276299',8,18,'N','S'),
-('65985125923',6,10,'S','N'),
-('65985126478',4,9,'N','S'),
-('65985146912',10,4,'N','S'),
-('65985212868',10,4,'N','S'),
-('65985277157',10,10,'S','N'),
-('65985282494',8,17,'S','N'),
-('67985178375',3,13,'S','N'),
-('67985231814',10,16,'N','S'),
-('67985283416',10,15,'S','N'),
-('68985188634',9,7,'N','S'),
-('68985227493',5,13,'N','S'),
-('69985122324',9,17,'N','S'),
-('69985165865',6,17,'S','N'),
-('69985236281',6,1,'S','N'),
-('71985122276',3,13,'S','N'),
-('71985152525',7,12,'S','N'),
-('71985187335',10,16,'S','N'),
-('71985199311',4,4,'S','N'),
-('71985249877',2,10,'S','N'),
-('71985259899',7,15,'N','S'),
-('71985286186',8,14,'S','N'),
-('79985138227',7,7,'N','S'),
-('79985175267',2,9,'S','N'),
-('79985195789',11,9,'N','S'),
-('79985295911',11,2,'N','S'),
-('82985111246',1,1,'N','S'),
-('82985129639',5,14,'S','N'),
-('82985224188',11,7,'S','N'),
-('82985277844',9,4,'S','N'),
-('82985291521',8,5,'S','N'),
-('83985115256',6,12,'S','N'),
-('83985132752',4,10,'N','S'),
-('83985235425',1,10,'S','N'),
-('83985253216',6,10,'N','S'),
-('84985138655',2,8,'S','N'),
-('84985166916',9,14,'S','N'),
-('84985179361',6,8,'S','N'),
-('84985191617',1,8,'S','N'),
-('86985115117',3,18,'S','N'),
-('86985122731',8,13,'N','S'),
-('86985136524',6,3,'S','N'),
-('86985175421',7,5,'N','S'),
-('86985213854',4,16,'N','S'),
-('87985123814',9,15,'N','S'),
-('88985257488',9,14,'S','N'),
-('91985123755',8,15,'N','S'),
-('91985177933',3,17,'S','N'),
-('91985269876',3,15,'N','S'),
-('92985136497',2,6,'S','N'),
-('92985259467',2,16,'S','N'),
-('92985293831',7,3,'S','N'),
-('95985212823',2,8,'N','S'),
-('95985213477',5,7,'S','N'),
-('95985255536',9,8,'S','N'),
-('95985263467',3,4,'N','S'),
-('96985133453',1,16,'S','N'),
-('96985187551',11,4,'N','S'),
-('96985252624',8,9,'N','S'),
-('98985142128',5,15,'N','S'),
-('98985173511',6,13,'S','N'),
-('98985221513',6,6,'S','N'),
-('98985252121',9,5,'N','S'),
-('98985259116',4,18,'S','N'),
-('98985259276',1,17,'N','S'),
-('98985285876',4,13,'S','N');
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('11985246734',11,16,'N','S');
 
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('11985292569',11,9,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('21985159186',8,7,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('21985186245',4,10,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('27985116316',6,18,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('27985137561',2,1,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('27985151776',9,9,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('27985195583',2,1,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('27985232638',4,12,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('41985117471',7,12,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('41985213456',5,13,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('41985241273',7,7,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('48985128947',5,1,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('48985193278',11,9,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('48985255414',1,18,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('51985234479',6,3,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('61985191785',1,12,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('61985215533',10,11,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('61985244124',4,15,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('62985119973',4,2,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('62985231551',7,8,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('62985267521',8,8,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('62985272558',2,6,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('62985294526',4,10,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('63985276299',8,18,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('65985125923',6,10,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('65985126478',4,9,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('65985146912',10,4,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('65985212868',10,4,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('65985277157',10,10,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('65985282494',8,17,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('67985178375',3,13,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('67985231814',10,16,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('67985283416',10,15,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('68985188634',9,7,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('68985227493',5,13,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('69985122324',9,17,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('69985165865',6,17,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('69985236281',6,1,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('71985122276',3,13,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('71985152525',7,12,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('71985187335',10,16,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('71985199311',4,4,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('71985249877',2,10,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('71985259899',7,15,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('71985286186',8,14,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('79985138227',7,7,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('79985175267',2,9,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('79985195789',11,9,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('79985295911',11,2,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('82985111246',1,1,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('82985129639',5,14,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('82985224188',11,7,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('82985277844',9,4,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('82985291521',8,5,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('83985115256',6,12,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('83985132752',4,10,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('83985235425',1,10,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('83985253216',6,10,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('84985138655',2,8,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('84985166916',9,14,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('84985179361',6,8,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('84985191617',1,8,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('86985115117',3,18,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('86985122731',8,13,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('86985136524',6,3,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('86985175421',7,5,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('86985213854',4,16,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('87985123814',9,15,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('88985257488',9,14,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('91985123755',8,15,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('91985177933',3,17,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('91985269876',3,15,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('92985136497',2,6,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('92985259467',2,16,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('92985293831',7,3,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('95985212823',2,8,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('95985213477',5,7,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('95985255536',9,8,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('95985263467',3,4,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('96985133453',1,16,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('96985187551',11,4,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('96985252624',8,9,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('98985142128',5,15,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('98985173511',6,13,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('98985221513',6,6,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('98985252121',9,5,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('98985259116',4,18,'S','N');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('98985259276',1,17,'N','S');
+
+INSERT INTO chip(idnumero,idoperadora,idplano,ativo,disponivel)
+VALUES('98985285876',4,13,'S','N');
 
 -- POVOAMENTO DA TABELA CIDADE
 INSERT INTO cidade (Nome, Uf) VALUES ('Água Branca', 'PB');
