@@ -310,15 +310,32 @@ BEGIN
 			IF anterior_pago = 'N' THEN
 				total := total + anterior_val;
 			END IF;
-			
-			INSERT INTO fatura(referencia, idnumero, valor_plano, tot_min_int, tot_min_ext,
-			tx_min_exced, tx_roaming, total, pago) VALUES (datafatura, chip.idnumero, pl.valor,
-			minIn_usado, minOut_usado, exced, roaming, total, 'S');
-			
+			-- criacao da fatura para o chip
+			INSERT INTO fatura(
+				referencia,
+				idnumero, 
+				valor_plano, 
+				tot_min_int, 
+				tot_min_ext, 
+				tx_min_exced, 
+				tx_roaming, total, 
+				pago
+			) 
+			VALUES (
+				datafatura, 
+				chip.idnumero,
+				pl.valor,
+				minTo_Val(1, minIn_usado),
+				minTo_Val(1, minOut_usado),
+				exced, 
+				roaming, 
+				total, 
+				'S'
+			);
 		END IF;
 	END LOOP;
+	COMMIT;
 END $$;
-
 
 
 -- REQUISITO 5
