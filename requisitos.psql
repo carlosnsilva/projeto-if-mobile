@@ -1,12 +1,5 @@
 -- REQUISITO 1
 
--- função usada para a criação de chips, recebe o id da operadora e o id do 
--- seu estado ao qual se deseja gerar chips, não insere:
--- 1) números repetidos
--- 2) números terminados em 0000
--- por padrão quando o chip é criado ele é inativo e disponível, seu plano
--- é o plano de id 1 que pode ser usado por todas as operadoas
-
 CREATE OR REPLACE FUNCTION gerar_numero(operadora INT, estado VARCHAR(2))
 RETURNS VARCHAR
 AS $$
@@ -91,7 +84,6 @@ LANGUAGE 'plpgsql';
 
 
 -- REQUISITO 3
-
 
 -- FUNÇAO DE SUPORTE: recebe uma data e retorna a data do ultimo dia de um mes.
 CREATE OR REPLACE FUNCTION ultimo_dia(date)
@@ -199,7 +191,6 @@ LANGUAGE plpgsql;
 
 
 -- PROCEDURE QUE GERA FATURAS
--- PROCEDURE QUE GERA FATURAS
 CREATE OR REPLACE PROCEDURE gerar_faturas(ano INT, mes INT)
 LANGUAGE plpgsql
 AS $$
@@ -239,7 +230,7 @@ BEGIN
 	FOR chip IN SELECT cc.idnumero, cc.idcliente 
 	FROM cliente_chip cc 
 	INNER JOIN cliente cl ON cl.idcliente = cc.idcliente 
-	WHERE cl.cancelado = 'N';
+	WHERE cl.cancelado = 'N'
 	LOOP		
 		-- exclusao de fatura ja existente para essa data caso exista
 		DELETE FROM fatura WHERE referencia = datafatura 
@@ -345,6 +336,7 @@ BEGIN
 END $$;
 
 
+
 -- REQUISITO 4
 
 CREATE OR REPLACE FUNCTION FN_PERMITE_LIGACAO()
@@ -437,6 +429,61 @@ CREATE TRIGGER TG_DISPONIBILIZA_NUMBER_3
 AFTER UPDATE OF CANCELADO ON CLIENTE
 FOR EACH ROW
 EXECUTE PROCEDURE FN_DISPONIBILIZA_NUMERO_3()
+
+-- REQUISITO 7
+
+-- PROCEDURE QUE POVOA LIGACOES EM UM MES E ANO ESPECIFICOS
+CREATE OR REPLACE PROCEDURE povoar_ligacoes(ano INT, mes INT)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+	data_ini DATE = ano ||'-' || mes || '-01';
+	data_fim DATE;
+	data_lig DATE;
+	count_dias INT;
+	chip RECORD;
+	num_liga INT = 0;	
+	num_liga_out INT = 0;
+	num_liga_in INT = 0;
+BEGIN
+	data_fim := ultimo_dia(data_ini);
+	
+	-- selecao de todos os chips pertinentes a clientes ativos em loop
+	FOR chip IN SELECT cc.idnumero, cc.idcliente 
+	FROM cliente_chip cc 
+	INNER JOIN cliente cl ON cl.idcliente = cc.idcliente 
+	WHERE cl.cancelado = 'N'
+	LOOP
+		count_dias = CAST((EXTRACT (DAY FROM data_fim)) AS INT);
+		FOR i IN 1..count_dias
+		LOOP
+			-- definicao da data da ligacao
+			data_lig = ano ||'-' || mes || i;
+			
+			-- definicao do numero de ligacoes para cada operadora 
+			num_liga = FLOOR(random()*(10-1+1))+1;
+			num_liga_out = ROUND((num_liga * 3)/10); -- 30% para fora
+			num_liga_in = ROUND((num_liga * 7)/10);  -- 70% para entre operadoras
+			IF num_liga_in = 0 THEN
+				num_liga_in = 1;
+			END IF;
+			IF num_liga_out = 0 THEN
+				num_liga_out = 1;
+			END IF;
+						
+			--FOR i IN 1..num_liga_out
+				-- gerar_ligacao(chip.idnumero, data_lig, 'op_igual');
+			--END LOOP;
+			
+			--FOR i IN 1..num_liga_in
+				-- gerar_ligacao(chip.idnumero, data_lig, 'op_diferente');
+			--END LOOP;
+			
+		END LOOP;		
+	END LOOP;
+END $$;
+
+
 
 --REQUISITO 8
 
