@@ -1,99 +1,8 @@
--- REQUISITO 1
+-- ######################################################## --
+--					 FUNCOES DE SUPORTE					    --
+-- ######################################################## --
 
--- função usada para a criação de chips, recebe o id da operadora e o id do 
--- seu estado ao qual se deseja gerar chips, não insere:
--- 1) números repetidos
--- 2) números terminados em 0000
--- por padrão quando o chip é criado ele é inativo e disponível, seu plano
--- é o plano de id 1 que pode ser usado por todas as operadoas
-
-CREATE OR REPLACE FUNCTION gerar_numero(operadora INT, estado VARCHAR(2))
-RETURNS VARCHAR
-AS $$
-	DECLARE 
-		ddd VARCHAR(2);
-		prefixo VARCHAR(4);
-		complemento VARCHAR;
-		numero VARCHAR(11);
-		loopComplemento BOOLEAN = true;
-		loopChip BOOLEAN = true;
-		idpl INT;
-		verificao VARCHAR(11);
-	BEGIN
-		-- Definicao do ddd
-		SELECT es.ddd INTO ddd FROM estado es WHERE es.uf = estado;
-		IF ddd IS null THEN		
-			RETURN 'Estado nao encontrado.';
-		END IF;
-		
-		-- loop de tentativas para gerar o chip
-		WHILE loopChip = true
-		LOOP
-			-- Definicao do prefixo 985 + (1 ou 2)
-			prefixo := '985' || (CAST ((FLOOR(random()*(2-1+1))+1) AS VARCHAR));
-
-			-- Formacao do corpo do numero
-			complemento := (CAST ((FLOOR(random()*(9-1+1))+1) AS VARCHAR));
-
-			WHILE loopComplemento = true
-			LOOP
-				complemento := (CAST ((FLOOR(random()*(9-1+1))+1) AS VARCHAR));
-				FOR i IN 1..3 BY 1
-				LOOP
-					complemento := complemento || (CAST ((FLOOR(random()*(9-1+1))+1) AS VARCHAR));
-				END LOOP; -- for
-
-				IF complemento != '0000' THEN
-					loopComplemento := FALSE;
-				END IF;
-				complemento := (CAST ((FLOOR(random()*(9-1+1))+1) AS VARCHAR)) || complemento;
-			END LOOP;
-			
-			-- numero completo
-			numero := ddd || prefixo || complemento;
-			
-			-- verificacao se o numero existe no banco
-			SELECT idnumero INTO verificao FROM chip WHERE idnumero = numero;
-			IF verificao is null THEN
-				loopChip := false;
-			END IF;
-		END LOOP;
-
-		-- escolha de um plano aleatorio
-		SELECT idplano INTO idpl FROM plano ORDER BY random() LIMIT 1;
-		
-		-- adicao do chip no banco
-		INSERT INTO chip(idnumero, idoperadora, idplano, ativo, disponivel)
-		VALUES (numero, operadora, idpl, 'N', 'S');
-		
-		RETURN 
-		'Chip criado para a operadora ' 
-		|| (select nome from operadora op where op.idoperadora = operadora) 
-		|| ': ' || numero;
-	END
-$$
-LANGUAGE 'plpgsql';
-
-
-
--- REQUISITO 2
--- função usada para retornar até 5 chips disponiveis ao cliente
-CREATE OR REPLACE FUNCTION numeros_disponiveis()
-RETURNS TABLE (numero CHAR(11))
-AS $$
-	BEGIN
-		RETURN QUERY SELECT IDNUMERO FROM CHIP WHERE DISPONIVEL = 'S' ORDER BY RANDOM() LIMIT 5;
-	END
-$$
-LANGUAGE 'plpgsql';
-
-
-
-
--- REQUISITO 3
-
-
--- FUNÇAO DE SUPORTE: recebe uma data e retorna a data do ultimo dia de um mes.
+-- recebe uma data e retorna a data com o ultimo dia do mes dessa data.
 CREATE OR REPLACE FUNCTION ultimo_dia(date)
 RETURNS date AS
 $$
@@ -102,8 +11,8 @@ $$ LANGUAGE 'sql' IMMUTABLE STRICT;
 
 
 
--- FUNÇÃO DE SUPORTE: recebe dois chips e retorna true caso os dois pertencam
--- a mesma operadora e false caso contrario ou em caso de erro
+-- recebe dois chips e retorna true caso os dois pertencam a mesma operadora
+-- e false caso contrario.
 CREATE OR REPLACE FUNCTION mesma_operadora(chip_1 VARCHAR(11), chip_2 VARCHAR(11))
 RETURNS BOOLEAN
 AS $$
@@ -129,8 +38,7 @@ LANGUAGE plpgsql;
 
 
 
--- FUNCAO DE SUPORTE: retorna um numero inteiro para cada minuto
--- de uma variavel time
+-- retorna um numero inteiro para cada minuto de uma variavel time
 CREATE OR REPLACE FUNCTION int_ToMin(inteiro INT)
 RETURNS TIME
 AS $$
@@ -147,9 +55,9 @@ LANGUAGE plpgsql;
 
 
 
--- FUNCAO DE SUPORTE: recebe uma taxa e uma duracao em formato de tempo
--- retorna o custo dessa duracao multiplicado pela taxa
-CREATE OR REPLACE FUNCTION minTo_Val(taxaPorMin NUMERIC, duracao TIME)
+-- recebe uma taxa e uma duracao em formato de tempo retorna o custo dessa
+-- duracao multiplicado pela taxa para cada minuto na duracao
+CREATE OR REPLACE FUNCTION minTo_Val(taxaPorMin NUMERIC, duracao TIME, count_seg BOOLEAN)
 RETURNS NUMERIC
 AS $$
 DECLARE
@@ -163,7 +71,7 @@ BEGIN
 	SELECT INTO horas CAST((EXTRACT (HOUR FROM duracao)) AS INT);
 	
 	-- de segundos para o contador
-	IF segundos >= 30 THEN 
+	IF (segundos >= 30) AND (count_seg = true) THEN 
 		contador := contador + 1;
 	END IF;
 	-- minutos para o contador
@@ -177,15 +85,14 @@ LANGUAGE plpgsql;
 
 
 
--- FUNCAO DE SUPORTE: retorna um record com os dados do plano
--- de um numero 
+-- retorna um record com os dados do plano de um numero 
 CREATE OR REPLACE FUNCTION get_plano(numero VARCHAR(11))
 RETURNS RECORD
 AS $$
 DECLARE
 	plano RECORD;
 BEGIN
-	SELECT pla.fminin, pla.fminout, pla.valor, ch1.idnumero 
+	SELECT pla.idplano, pla.fminin, pla.fminout, pla.valor, ch1.idnumero 
 	INTO plano FROM plano pla INNER JOIN chip ch1 ON ch1.idplano = pla.idplano	
 	WHERE pla.idplano = (
 		SELECT idplano FROM chip ch
@@ -198,7 +105,83 @@ LANGUAGE plpgsql;
 
 
 
--- PROCEDURE QUE GERA FATURAS
+-- ######################################################## --
+--						 REQUISITOS						    --
+-- ######################################################## --
+
+
+
+-- REQUISITO 1
+CREATE OR REPLACE FUNCTION gerar_numero(operadora INT, estado VARCHAR(2))
+RETURNS VARCHAR
+AS $$
+	DECLARE 
+		ddd VARCHAR(2);
+		prefixo VARCHAR(4);
+		complemento VARCHAR;
+		numero VARCHAR(11);
+	BEGIN
+		-- Definicao do ddd
+		SELECT es.ddd INTO ddd FROM estado es WHERE es.uf = estado;
+		IF ddd IS null THEN		
+			RETURN 'Estado nao encontrado.';
+		END IF;
+		
+		-- loop de tentativas para gerar o chip
+		WHILE true
+		LOOP
+			-- Definicao do prefixo 985 + (1 ou 2)
+			prefixo := '985' || (CAST ((FLOOR(random()*(2-1+1))+1) AS VARCHAR));
+
+			-- Formacao do corpo do numero
+			complemento := (CAST ((FLOOR(random()*(9-1+1))+1) AS VARCHAR));
+
+			WHILE true
+			LOOP
+				complemento := (CAST ((FLOOR(random()*(9-1+1))+1) AS VARCHAR));
+				FOR i IN 1..3 BY 1
+				LOOP
+					complemento := complemento || (CAST ((FLOOR(random()*(9-1+1))+1) AS VARCHAR));
+				END LOOP; -- for
+
+				IF complemento != '0000' THEN
+					EXIT;
+				END IF;
+				complemento := (CAST ((FLOOR(random()*(9-1+1))+1) AS VARCHAR)) || complemento;
+			END LOOP;
+			
+			-- numero completo
+			numero := ddd || prefixo || complemento;
+			
+			-- verificacao se o numero existe no banco
+			IF NOT EXISTS (SELECT idnumero FROM chip WHERE idnumero = numero) THEN
+				EXIT;
+			END IF;
+		END LOOP;
+		RETURN numero;
+	END
+$$
+LANGUAGE 'plpgsql';
+
+
+
+-- REQUISITO 2
+CREATE OR REPLACE FUNCTION numeros_disponiveis()
+RETURNS TABLE (numero CHAR(11))
+AS $$
+	BEGIN
+		RETURN QUERY 
+		SELECT IDNUMERO FROM CHIP 
+		WHERE DISPONIVEL = 'S' 
+		ORDER BY RANDOM() LIMIT 5;
+	END
+$$
+LANGUAGE 'plpgsql';
+
+
+
+-- REQUISITO 3
+
 CREATE OR REPLACE PROCEDURE gerar_faturas(ano INT, mes INT)
 LANGUAGE plpgsql
 AS $$
@@ -208,13 +191,8 @@ DECLARE
 	ligacao RECORD;
 	datafatura DATE;
 	datafinal DATE;
-	existe CHAR(1);
 	pl RECORD;
-	mesma_op BOOLEAN;
 	timeVar TIME;
-	mes_anterior DATE;
-	anterior_pago CHAR(1);
-	anterior_val NUMERIC(7,2);
 	
 	-- variaveis exclusivas da fatura
 	taxa_roaming NUMERIC(5,2);
@@ -224,119 +202,109 @@ DECLARE
 	minOut_dispo TIME;
 	minOut_usado TIME;
 	exced NUMERIC(5,2);
+	seg_acumulados TIME = '00:00:00';
 	roaming NUMERIC(5,2);
 	total NUMERIC(7,2);
 	
 BEGIN
 	-- definicao das datas das faturas
 	datafatura = ano || '-' || mes || '-01';
-	mes_anterior = date_trunc('month', datafatura - interval '1' month);
 	
 	-- definicao da data do ultimo dia do mes da fatura
 	SELECT ultimo_dia(datafatura) INTO datafinal;
 	
-	-- loop por todos os chips ativos
-	FOR chip IN SELECT * FROM chip WHERE ativo = 'S'
-	LOOP
-		-- verificacao se ja existe fatura para esse chip nessa data
-		SELECT pago INTO existe 
-		FROM fatura WHERE referencia = datafatura 
+	-- loop por todos os chips que pertencem a clientes ativos
+	FOR chip IN SELECT cc.idnumero, cc.idcliente 
+	FROM cliente_chip cc 
+	INNER JOIN cliente cl ON cl.idcliente = cc.idcliente 
+	WHERE cl.cancelado = 'N'
+	LOOP		
+		-- exclusao de fatura ja existente para essa data caso exista
+		DELETE FROM fatura WHERE referencia = datafatura 
 		AND idnumero = chip.idnumero;
 		
-		IF existe IS NULL THEN
-			-- busca pelo plano do chip
-			pl := get_plano(chip.idnumero);
-						
-			-- adicao dos dados do plano nas variaveis da fatura
-			SELECT int_ToMin(pl.fminin) INTO minIn_dispo;
-						
-			SELECT int_toMin(pl.fminout) INTO minout_dispo;
-			
-			minIn_usado :=  '00:00:00';
-			minOut_usado := '00:00:00';
-			
-			exced := 0;
-			roaming := 0;
-			
-			SELECT taf.valor INTO taxa_roaming 
-			FROM plano_tarifa plt INNER JOIN tarifa taf	ON taf.idtarifa = plt.idtarifa 
-			WHERE plt.idplano = 1 AND taf.descricao = 'Uso de roaming';
-			
-			SELECT taf.valor INTO taxa_Exced
-			FROM plano_tarifa plt INNER JOIN tarifa taf ON taf.idtarifa = plt.idtarifa
-			WHERE plt.idplano = 1 AND taf.descricao = 'Exceder minutos do plano';
-			
-			total := pl.valor;
-			
-			-- loop por todas as ligacoes do chip feitas no periodo da fatura
-			FOR ligacao IN SELECT * FROM ligacao li
-			WHERE li.chip_emissor = chip.idnumero 
-			AND (li.data >= datafatura AND li.data <= datafinal)
-			LOOP
-				-- verificacao se a ligacao foi feita para a mesma operadora
-				SELECT mesma_operadora(ligacao.chip_emissor, ligacao.chip_receptor) INTO mesma_op;
-				IF mesma_op THEN
-					minIn_usado := minIn_usado::interval + ligacao.duracao::interval;
-					IF ligacao.duracao <= minIn_dispo THEN
-						minIn_dispo := minIn_dispo - ligacao.duracao;
-					ELSE
-						minIn_dispo := '00:00:00';
-						timevar := ligacao.duracao - minIn_dispo;						
-						exced := exced + minTo_Val(taxa_Exced, timeVar);
-					END IF;
+		-- busca pelo plano do chip
+		pl := get_plano(chip.idnumero);
+
+		-- reset das variaveis da fatura de acordo com o dados do plano
+		minIn_dispo := int_ToMin(pl.fminin);
+		minout_dispo := int_toMin(pl.fminout);
+
+		minIn_usado :=  '00:00:00';
+		minOut_usado := '00:00:00';
+
+		exced := 0;
+		roaming := 0;
+				
+		SELECT taf.valor INTO taxa_roaming 
+		FROM plano_tarifa plt INNER JOIN tarifa taf	ON taf.idtarifa = plt.idtarifa 
+		WHERE plt.idplano = pl.idplano AND taf.descricao = 'Uso de roaming';
+
+		SELECT taf.valor INTO taxa_Exced
+		FROM plano_tarifa plt INNER JOIN tarifa taf ON taf.idtarifa = plt.idtarifa
+		WHERE plt.idplano = pl.idplano AND taf.descricao = 'Exceder minutos do plano';
+
+		total := pl.valor;
+
+		-- loop por todas as ligacoes do chip feitas no periodo da fatura
+		FOR ligacao IN SELECT * FROM ligacao li
+		WHERE li.chip_emissor = chip.idnumero 
+		AND (li.data >= datafatura AND li.data <= datafinal)
+		LOOP
+			-- verificacao se a ligacao foi feita para a mesma operadora
+			IF mesma_operadora(ligacao.chip_emissor, ligacao.chip_receptor) THEN
+				minIn_usado := minIn_usado::interval + ligacao.duracao::interval;
+				IF ligacao.duracao <= minIn_dispo THEN
+					minIn_dispo := minIn_dispo - ligacao.duracao;
 				ELSE
-					roaming := roaming + taxa_roaming;
-					minOut_usado := minOut_usado::interval + ligacao.duracao::interval;
-					IF ligacao.duracao <= minOut_dispo THEN
-						minOut_dispo := minOut_dispo - ligacao.duracao;
-					ELSE
-						minOut_dispo := '00:00:00';						
-						timevar := ligacao.duracao - minOut_dispo;
-						exced := exced + minTo_Val(taxa_Exced, timeVar);
-					END IF;	
+					minIn_dispo := '00:00:00';
+					timevar := ligacao.duracao - minIn_dispo;						
+					exced := exced + minTo_Val(taxa_Exced, timeVar, false);
+					seg_acumulados := seg_acumulados + ('00:00:' || (EXTRACT(SECOND FROM timeVar)))::interval;
 				END IF;
-			END LOOP;
-			
-			-- adicao dos resultados no total da fatura			
-			total := total + roaming + exced;
-			
-			-- soma do valor total com o valor da fatura anterior caso a mesma 
-			-- nao tenha sido paga
-			SELECT fat.pago, fat.total FROM fatura fat
-			WHERE referencia = mes_anterior
-			AND idnumero = chip.idnumero
-			INTO anterior_pago, anterior_val;
-			
-			IF anterior_pago = 'N' THEN
-				total := total + anterior_val;
+			ELSE
+				roaming := roaming + taxa_roaming;
+				minOut_usado := minOut_usado::interval + ligacao.duracao::interval;
+				IF ligacao.duracao <= minOut_dispo THEN
+					minOut_dispo := minOut_dispo - ligacao.duracao;
+				ELSE
+					minOut_dispo := '00:00:00';						
+					timevar := ligacao.duracao - minOut_dispo;
+					exced := exced + minTo_Val(taxa_Exced, timeVar, false);
+					seg_acumulados := seg_acumulados + ('00:00:' || (EXTRACT(SECOND FROM timeVar)))::interval;
+				END IF;	
 			END IF;
-			-- criacao da fatura para o chip
-			INSERT INTO fatura(
-				referencia,
-				idnumero, 
-				valor_plano, 
-				tot_min_int, 
-				tot_min_ext, 
-				tx_min_exced, 
-				tx_roaming, total, 
-				pago
-			) 
-			VALUES (
-				datafatura, 
-				chip.idnumero,
-				pl.valor,
-				minTo_Val(1, minIn_usado),
-				minTo_Val(1, minOut_usado),
-				exced, 
-				roaming, 
-				total, 
-				'S'
-			);
-		END IF;
-		COMMIT;
+		END LOOP;
+		
+		-- contagem dos segundos acumulados por todas as ligacoes
+		exced := exced +  minTo_Val(taxa_Exced, seg_acumulados, true);
+	
+		-- criacao da fatura para o chip
+		INSERT INTO fatura(
+			referencia,
+			idnumero, 
+			valor_plano, 
+			tot_min_int, 
+			tot_min_ext, 
+			tx_min_exced, 
+			tx_roaming, total, 
+			pago
+		) 
+		VALUES (
+			datafatura, 
+			chip.idnumero,
+			pl.valor,
+			minTo_Val(1, minIn_usado, true),
+			minTo_Val(1, minOut_usado, true),
+			exced, 
+			roaming, 
+			total, 
+			'N'
+		);		
 	END LOOP;
 	COMMIT;
 END $$;
+
 
 
 -- REQUISITO 4
@@ -431,6 +399,90 @@ CREATE TRIGGER TG_DISPONIBILIZA_NUMBER_3
 AFTER UPDATE OF CANCELADO ON CLIENTE
 FOR EACH ROW
 EXECUTE PROCEDURE FN_DISPONIBILIZA_NUMERO_3()
+
+-- REQUISITO 7
+
+-- PROCEDURE QUE POVOA LIGACOES EM UM MES E ANO ESPECIFICOS
+CREATE OR REPLACE PROCEDURE gerar_ligacao(chip VARCHAR, dia DATE, operadora_dest VARCHAR)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+	num_minutos NUMERIC;
+	duracao TIME;
+	tipo INT;
+BEGIN
+	-- definicao da duracao da ligacao
+	tipo = FLOOR(random()*(10-1+1))+1;
+	IF tipo <= 6 THEN
+		-- ligacao de 30s a 20 min
+		num_minutos = ROUND( CAST(FLOAT8 (random()*(20-0.5)+0.5) AS NUMERIC), 2);
+	ELSIF tipo <= 9 THEN
+		-- ligacao de 20 min a 1h
+		num_minutos = ROUND( CAST(FLOAT8 (random()*(60-20)+20) AS NUMERIC), 2);
+	ELSE
+		-- ligacao de 1h a 2h
+		num_minutos = ROUND( CAST(FLOAT8 (random()*(120-60)+60) AS NUMERIC), 2);
+	END IF;
+		
+	
+	
+	RAISE NOTICE '% %', tipo, num_minutos; 
+END $$;
+
+
+
+-- PROCEDURE QUE POVOA LIGACOES EM UM MES E ANO ESPECIFICOS
+CREATE OR REPLACE PROCEDURE povoar_ligacoes(ano INT, mes INT)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+	data_ini DATE = ano ||'-' || mes || '-01';
+	data_fim DATE;
+	data_lig DATE;
+	count_dias INT;
+	chip RECORD;
+	num_liga INT = 0;	
+	num_liga_out INT = 0;
+	num_liga_in INT = 0;
+BEGIN
+	data_fim := ultimo_dia(data_ini);
+	
+	-- selecao de todos os chips pertinentes a clientes ativos em loop
+	FOR chip IN SELECT cc.idnumero, cc.idcliente 
+	FROM cliente_chip cc 
+	INNER JOIN cliente cl ON cl.idcliente = cc.idcliente 
+	WHERE cl.cancelado = 'N'
+	LOOP
+		count_dias = CAST((EXTRACT (DAY FROM data_fim)) AS INT);
+		FOR i IN 1..count_dias
+		LOOP
+			-- definicao da data da ligacao
+			data_lig = ano ||'-' || mes || i;
+			
+			-- definicao do numero de ligacoes para cada operadora 
+			num_liga = FLOOR(random()*(10-1+1))+1;
+			num_liga_out = ROUND((num_liga * 3)/10); -- 30% para fora
+			num_liga_in = ROUND((num_liga * 7)/10);  -- 70% para entre operadoras
+			IF num_liga_in = 0 THEN
+				num_liga_in = 1;
+			END IF;
+			IF num_liga_out = 0 THEN
+				num_liga_out = 1;
+			END IF;
+						
+			--FOR i IN 1..num_liga_out
+				-- gerar_ligacao(chip.idnumero, data_lig, 'op_igual');
+			--END LOOP;
+			
+			--FOR i IN 1..num_liga_in
+				-- gerar_ligacao(chip.idnumero, data_lig, 'op_diferente');
+			--END LOOP;
+			
+		END LOOP;		
+	END LOOP;
+END $$;
+
+
 
 --REQUISITO 8
 
