@@ -57,7 +57,7 @@ LANGUAGE plpgsql;
 
 -- recebe uma taxa e uma duracao em formato de tempo retorna o custo dessa
 -- duracao multiplicado pela taxa para cada minuto na duracao
-CREATE OR REPLACE FUNCTION minTo_Val(taxaPorMin NUMERIC, duracao TIME)
+CREATE OR REPLACE FUNCTION minTo_Val(taxaPorMin NUMERIC, duracao TIME, count_seg BOOLEAN)
 RETURNS NUMERIC
 AS $$
 DECLARE
@@ -71,7 +71,7 @@ BEGIN
 	SELECT INTO horas CAST((EXTRACT (HOUR FROM duracao)) AS INT);
 	
 	-- de segundos para o contador
-	IF segundos >= 30 THEN 
+	IF (segundos >= 30) AND (count_seg = true) THEN 
 		contador := contador + 1;
 	END IF;
 	-- minutos para o contador
@@ -92,7 +92,7 @@ AS $$
 DECLARE
 	plano RECORD;
 BEGIN
-	SELECT pla.fminin, pla.fminout, pla.valor, ch1.idnumero 
+	SELECT pla.idplano, pla.fminin, pla.fminout, pla.valor, ch1.idnumero 
 	INTO plano FROM plano pla INNER JOIN chip ch1 ON ch1.idplano = pla.idplano	
 	WHERE pla.idplano = (
 		SELECT idplano FROM chip ch
@@ -170,7 +170,10 @@ CREATE OR REPLACE FUNCTION numeros_disponiveis()
 RETURNS TABLE (numero CHAR(11))
 AS $$
 	BEGIN
-		RETURN QUERY SELECT IDNUMERO FROM CHIP WHERE DISPONIVEL = 'S' ORDER BY RANDOM() LIMIT 5;
+		RETURN QUERY 
+		SELECT IDNUMERO FROM CHIP 
+		WHERE DISPONIVEL = 'S' 
+		ORDER BY RANDOM() LIMIT 5;
 	END
 $$
 LANGUAGE 'plpgsql';
@@ -189,11 +192,7 @@ DECLARE
 	datafatura DATE;
 	datafinal DATE;
 	pl RECORD;
-	mesma_op BOOLEAN;
 	timeVar TIME;
-	mes_anterior DATE;
-	anterior_pago CHAR(1);
-	anterior_val NUMERIC(7,2);
 	
 	-- variaveis exclusivas da fatura
 	taxa_roaming NUMERIC(5,2);
@@ -203,13 +202,13 @@ DECLARE
 	minOut_dispo TIME;
 	minOut_usado TIME;
 	exced NUMERIC(5,2);
+	seg_acumulados TIME = '00:00:00';
 	roaming NUMERIC(5,2);
 	total NUMERIC(7,2);
 	
 BEGIN
 	-- definicao das datas das faturas
 	datafatura = ano || '-' || mes || '-01';
-	mes_anterior = date_trunc('month', datafatura - interval '1' month);
 	
 	-- definicao da data do ultimo dia do mes da fatura
 	SELECT ultimo_dia(datafatura) INTO datafinal;
@@ -227,24 +226,23 @@ BEGIN
 		-- busca pelo plano do chip
 		pl := get_plano(chip.idnumero);
 
-		-- adicao dos dados do plano nas variaveis da fatura
-		SELECT int_ToMin(pl.fminin) INTO minIn_dispo;
-
-		SELECT int_toMin(pl.fminout) INTO minout_dispo;
+		-- reset das variaveis da fatura de acordo com o dados do plano
+		minIn_dispo := int_ToMin(pl.fminin);
+		minout_dispo := int_toMin(pl.fminout);
 
 		minIn_usado :=  '00:00:00';
 		minOut_usado := '00:00:00';
 
 		exced := 0;
 		roaming := 0;
-		
+				
 		SELECT taf.valor INTO taxa_roaming 
 		FROM plano_tarifa plt INNER JOIN tarifa taf	ON taf.idtarifa = plt.idtarifa 
-		WHERE plt.idplano = 1 AND taf.descricao = 'Uso de roaming';
+		WHERE plt.idplano = pl.idplano AND taf.descricao = 'Uso de roaming';
 
 		SELECT taf.valor INTO taxa_Exced
 		FROM plano_tarifa plt INNER JOIN tarifa taf ON taf.idtarifa = plt.idtarifa
-		WHERE plt.idplano = 1 AND taf.descricao = 'Exceder minutos do plano';
+		WHERE plt.idplano = pl.idplano AND taf.descricao = 'Exceder minutos do plano';
 
 		total := pl.valor;
 
@@ -254,15 +252,15 @@ BEGIN
 		AND (li.data >= datafatura AND li.data <= datafinal)
 		LOOP
 			-- verificacao se a ligacao foi feita para a mesma operadora
-			SELECT mesma_operadora(ligacao.chip_emissor, ligacao.chip_receptor) INTO mesma_op;
-			IF mesma_op THEN
+			IF mesma_operadora(ligacao.chip_emissor, ligacao.chip_receptor) THEN
 				minIn_usado := minIn_usado::interval + ligacao.duracao::interval;
 				IF ligacao.duracao <= minIn_dispo THEN
 					minIn_dispo := minIn_dispo - ligacao.duracao;
 				ELSE
 					minIn_dispo := '00:00:00';
 					timevar := ligacao.duracao - minIn_dispo;						
-					exced := exced + minTo_Val(taxa_Exced, timeVar);
+					exced := exced + minTo_Val(taxa_Exced, timeVar, false);
+					seg_acumulados := seg_acumulados + ('00:00:' || (EXTRACT(SECOND FROM timeVar)))::interval;
 				END IF;
 			ELSE
 				roaming := roaming + taxa_roaming;
@@ -272,34 +270,15 @@ BEGIN
 				ELSE
 					minOut_dispo := '00:00:00';						
 					timevar := ligacao.duracao - minOut_dispo;
-					exced := exced + minTo_Val(taxa_Exced, timeVar);
+					exced := exced + minTo_Val(taxa_Exced, timeVar, false);
+					seg_acumulados := seg_acumulados + ('00:00:' || (EXTRACT(SECOND FROM timeVar)))::interval;
 				END IF;	
 			END IF;
 		END LOOP;
-
-		-- adicao dos resultados no total da fatura			
-		total := total + roaming + exced;
-
-		-- soma do valor total com o valor da fatura anterior caso a mesma 
-		-- nao tenha sido paga
 		
-		-- inativar o chip em vez de tornar a fatura paga
-		
-		SELECT fat.pago, fat.total FROM fatura fat
-		WHERE referencia = mes_anterior
-		AND idnumero = chip.idnumero
-		INTO anterior_pago, anterior_val;
-
-		IF anterior_pago = 'N' THEN
-			-- adicao do valor da fatura anterior a atual
-			total := total + anterior_val;
-			
-			-- definicao da fatura anterior como paga;
-			UPDATE fatura SET pago = 'S' 
-			WHERE referencia = mes_anterior
-			AND idnumero = chip.idnumero;
-		END IF;
-		
+		-- contagem dos segundos acumulados por todas as ligacoes
+		exced := exced +  minTo_Val(taxa_Exced, seg_acumulados, true);
+	
 		-- criacao da fatura para o chip
 		INSERT INTO fatura(
 			referencia,
@@ -315,14 +294,13 @@ BEGIN
 			datafatura, 
 			chip.idnumero,
 			pl.valor,
-			minTo_Val(1, minIn_usado),
-			minTo_Val(1, minOut_usado),
+			minTo_Val(1, minIn_usado, true),
+			minTo_Val(1, minOut_usado, true),
 			exced, 
 			roaming, 
 			total, 
 			'N'
-		);
-		
+		);		
 	END LOOP;
 	COMMIT;
 END $$;
