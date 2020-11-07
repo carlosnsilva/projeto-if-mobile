@@ -46,23 +46,11 @@ AS $$
 			numero := ddd || prefixo || complemento;
 			
 			-- verificacao se o numero existe no banco
-			SELECT idnumero INTO verificao FROM chip WHERE idnumero = numero;
-			IF verificao is null THEN
-				loopChip := false;
+			IF NOT EXISTS (SELECT idnumero FROM chip WHERE idnumero = numero) THEN
+				EXIT;
 			END IF;
 		END LOOP;
-
-		-- escolha de um plano aleatorio
-		SELECT idplano INTO idpl FROM plano ORDER BY random() LIMIT 1;
-		
-		-- adicao do chip no banco
-		INSERT INTO chip(idnumero, idoperadora, idplano, ativo, disponivel)
-		VALUES (numero, operadora, idpl, 'N', 'S');
-		
-		RETURN 
-		'Chip criado para a operadora ' 
-		|| (select nome from operadora op where op.idoperadora = operadora) 
-		|| ': ' || numero;
+		RETURN numero;
 	END
 $$
 LANGUAGE 'plpgsql';
@@ -249,7 +237,7 @@ BEGIN
 
 		exced := 0;
 		roaming := 0;
-
+		
 		SELECT taf.valor INTO taxa_roaming 
 		FROM plano_tarifa plt INNER JOIN tarifa taf	ON taf.idtarifa = plt.idtarifa 
 		WHERE plt.idplano = 1 AND taf.descricao = 'Uso de roaming';
@@ -294,6 +282,9 @@ BEGIN
 
 		-- soma do valor total com o valor da fatura anterior caso a mesma 
 		-- nao tenha sido paga
+		
+		-- inativar o chip em vez de tornar a fatura paga
+		
 		SELECT fat.pago, fat.total FROM fatura fat
 		WHERE referencia = mes_anterior
 		AND idnumero = chip.idnumero
@@ -331,6 +322,7 @@ BEGIN
 			total, 
 			'N'
 		);
+		
 	END LOOP;
 	COMMIT;
 END $$;
@@ -431,6 +423,35 @@ FOR EACH ROW
 EXECUTE PROCEDURE FN_DISPONIBILIZA_NUMERO_3()
 
 -- REQUISITO 7
+
+-- PROCEDURE QUE POVOA LIGACOES EM UM MES E ANO ESPECIFICOS
+CREATE OR REPLACE PROCEDURE gerar_ligacao(chip VARCHAR, dia DATE, operadora_dest VARCHAR)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+	num_minutos NUMERIC;
+	duracao TIME;
+	tipo INT;
+BEGIN
+	-- definicao da duracao da ligacao
+	tipo = FLOOR(random()*(10-1+1))+1;
+	IF tipo <= 6 THEN
+		-- ligacao de 30s a 20 min
+		num_minutos = ROUND( CAST(FLOAT8 (random()*(20-0.5)+0.5) AS NUMERIC), 2);
+	ELSIF tipo <= 9 THEN
+		-- ligacao de 20 min a 1h
+		num_minutos = ROUND( CAST(FLOAT8 (random()*(60-20)+20) AS NUMERIC), 2);
+	ELSE
+		-- ligacao de 1h a 2h
+		num_minutos = ROUND( CAST(FLOAT8 (random()*(120-60)+60) AS NUMERIC), 2);
+	END IF;
+		
+	
+	
+	RAISE NOTICE '% %', tipo, num_minutos; 
+END $$;
+
+
 
 -- PROCEDURE QUE POVOA LIGACOES EM UM MES E ANO ESPECIFICOS
 CREATE OR REPLACE PROCEDURE povoar_ligacoes(ano INT, mes INT)
