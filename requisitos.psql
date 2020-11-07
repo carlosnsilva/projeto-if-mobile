@@ -1,79 +1,8 @@
--- REQUISITO 1
+-- ######################################################## --
+--					 FUNCOES DE SUPORTE					    --
+-- ######################################################## --
 
-CREATE OR REPLACE FUNCTION gerar_numero(operadora INT, estado VARCHAR(2))
-RETURNS VARCHAR
-AS $$
-	DECLARE 
-		ddd VARCHAR(2);
-		prefixo VARCHAR(4);
-		complemento VARCHAR;
-		numero VARCHAR(11);
-		loopComplemento BOOLEAN = true;
-		loopChip BOOLEAN = true;
-		idpl INT;
-		verificao VARCHAR(11);
-	BEGIN
-		-- Definicao do ddd
-		SELECT es.ddd INTO ddd FROM estado es WHERE es.uf = estado;
-		IF ddd IS null THEN		
-			RETURN 'Estado nao encontrado.';
-		END IF;
-		
-		-- loop de tentativas para gerar o chip
-		WHILE loopChip = true
-		LOOP
-			-- Definicao do prefixo 985 + (1 ou 2)
-			prefixo := '985' || (CAST ((FLOOR(random()*(2-1+1))+1) AS VARCHAR));
-
-			-- Formacao do corpo do numero
-			complemento := (CAST ((FLOOR(random()*(9-1+1))+1) AS VARCHAR));
-
-			WHILE loopComplemento = true
-			LOOP
-				complemento := (CAST ((FLOOR(random()*(9-1+1))+1) AS VARCHAR));
-				FOR i IN 1..3 BY 1
-				LOOP
-					complemento := complemento || (CAST ((FLOOR(random()*(9-1+1))+1) AS VARCHAR));
-				END LOOP; -- for
-
-				IF complemento != '0000' THEN
-					loopComplemento := FALSE;
-				END IF;
-				complemento := (CAST ((FLOOR(random()*(9-1+1))+1) AS VARCHAR)) || complemento;
-			END LOOP;
-			
-			-- numero completo
-			numero := ddd || prefixo || complemento;
-			
-			-- verificacao se o numero existe no banco
-			IF NOT EXISTS (SELECT idnumero FROM chip WHERE idnumero = numero) THEN
-				EXIT;
-			END IF;
-		END LOOP;
-		RETURN numero;
-	END
-$$
-LANGUAGE 'plpgsql';
-
-
-
--- REQUISITO 2
--- função usada para retornar até 5 chips disponiveis ao cliente
-CREATE OR REPLACE FUNCTION numeros_disponiveis()
-RETURNS TABLE (numero CHAR(11))
-AS $$
-	BEGIN
-		RETURN QUERY SELECT IDNUMERO FROM CHIP WHERE DISPONIVEL = 'S' ORDER BY RANDOM() LIMIT 5;
-	END
-$$
-LANGUAGE 'plpgsql';
-
-
-
-
--- REQUISITO 3
-
--- FUNÇAO DE SUPORTE: recebe uma data e retorna a data do ultimo dia de um mes.
+-- recebe uma data e retorna a data com o ultimo dia do mes dessa data.
 CREATE OR REPLACE FUNCTION ultimo_dia(date)
 RETURNS date AS
 $$
@@ -82,8 +11,8 @@ $$ LANGUAGE 'sql' IMMUTABLE STRICT;
 
 
 
--- FUNÇÃO DE SUPORTE: recebe dois chips e retorna true caso os dois pertencam
--- a mesma operadora e false caso contrario ou em caso de erro
+-- recebe dois chips e retorna true caso os dois pertencam a mesma operadora
+-- e false caso contrario.
 CREATE OR REPLACE FUNCTION mesma_operadora(chip_1 VARCHAR(11), chip_2 VARCHAR(11))
 RETURNS BOOLEAN
 AS $$
@@ -109,8 +38,7 @@ LANGUAGE plpgsql;
 
 
 
--- FUNCAO DE SUPORTE: retorna um numero inteiro para cada minuto
--- de uma variavel time
+-- retorna um numero inteiro para cada minuto de uma variavel time
 CREATE OR REPLACE FUNCTION int_ToMin(inteiro INT)
 RETURNS TIME
 AS $$
@@ -127,8 +55,8 @@ LANGUAGE plpgsql;
 
 
 
--- FUNCAO DE SUPORTE: recebe uma taxa e uma duracao em formato de tempo
--- retorna o custo dessa duracao multiplicado pela taxa
+-- recebe uma taxa e uma duracao em formato de tempo retorna o custo dessa
+-- duracao multiplicado pela taxa para cada minuto na duracao
 CREATE OR REPLACE FUNCTION minTo_Val(taxaPorMin NUMERIC, duracao TIME)
 RETURNS NUMERIC
 AS $$
@@ -157,8 +85,7 @@ LANGUAGE plpgsql;
 
 
 
--- FUNCAO DE SUPORTE: retorna um record com os dados do plano
--- de um numero 
+-- retorna um record com os dados do plano de um numero 
 CREATE OR REPLACE FUNCTION get_plano(numero VARCHAR(11))
 RETURNS RECORD
 AS $$
@@ -178,7 +105,80 @@ LANGUAGE plpgsql;
 
 
 
--- PROCEDURE QUE GERA FATURAS
+-- ######################################################## --
+--						 REQUISITOS						    --
+-- ######################################################## --
+
+
+
+-- REQUISITO 1
+CREATE OR REPLACE FUNCTION gerar_numero(operadora INT, estado VARCHAR(2))
+RETURNS VARCHAR
+AS $$
+	DECLARE 
+		ddd VARCHAR(2);
+		prefixo VARCHAR(4);
+		complemento VARCHAR;
+		numero VARCHAR(11);
+	BEGIN
+		-- Definicao do ddd
+		SELECT es.ddd INTO ddd FROM estado es WHERE es.uf = estado;
+		IF ddd IS null THEN		
+			RETURN 'Estado nao encontrado.';
+		END IF;
+		
+		-- loop de tentativas para gerar o chip
+		WHILE true
+		LOOP
+			-- Definicao do prefixo 985 + (1 ou 2)
+			prefixo := '985' || (CAST ((FLOOR(random()*(2-1+1))+1) AS VARCHAR));
+
+			-- Formacao do corpo do numero
+			complemento := (CAST ((FLOOR(random()*(9-1+1))+1) AS VARCHAR));
+
+			WHILE true
+			LOOP
+				complemento := (CAST ((FLOOR(random()*(9-1+1))+1) AS VARCHAR));
+				FOR i IN 1..3 BY 1
+				LOOP
+					complemento := complemento || (CAST ((FLOOR(random()*(9-1+1))+1) AS VARCHAR));
+				END LOOP; -- for
+
+				IF complemento != '0000' THEN
+					EXIT;
+				END IF;
+				complemento := (CAST ((FLOOR(random()*(9-1+1))+1) AS VARCHAR)) || complemento;
+			END LOOP;
+			
+			-- numero completo
+			numero := ddd || prefixo || complemento;
+			
+			-- verificacao se o numero existe no banco
+			IF NOT EXISTS (SELECT idnumero FROM chip WHERE idnumero = numero) THEN
+				EXIT;
+			END IF;
+		END LOOP;
+		RETURN numero;
+	END
+$$
+LANGUAGE 'plpgsql';
+
+
+
+-- REQUISITO 2
+CREATE OR REPLACE FUNCTION numeros_disponiveis()
+RETURNS TABLE (numero CHAR(11))
+AS $$
+	BEGIN
+		RETURN QUERY SELECT IDNUMERO FROM CHIP WHERE DISPONIVEL = 'S' ORDER BY RANDOM() LIMIT 5;
+	END
+$$
+LANGUAGE 'plpgsql';
+
+
+
+-- REQUISITO 3
+
 CREATE OR REPLACE PROCEDURE gerar_faturas(ano INT, mes INT)
 LANGUAGE plpgsql
 AS $$
