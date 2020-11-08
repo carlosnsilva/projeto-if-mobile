@@ -410,6 +410,7 @@ DECLARE
 	chip_dest RECORD;
 	ts_ini TIMESTAMP;
 	ts_fim TIMESTAMP;
+	ts_ultimaLig TIME;
 	espacamento TIME;
 	tipo INT;
 	
@@ -442,59 +443,50 @@ BEGIN
 	) 
 	AND li.chip_emissor = chip_rec
 	ORDER BY li.data DESC LIMIT 1;
-
+	
 	-- caso nao exista ligacao no dia o timestamp inicia as 0 horas
 	IF ts_ini IS NULL THEN
 		ts_ini := dia || ' 00:00:00';
 	END IF;
-	
-	ts_fim := ts_ini + val_ToMin(num_minutos);
-	
+		
 	-- definicao da duracao da ligacao
 	duracao := val_ToMin(num_minutos);
+
+	ts_fim := ts_ini + duracao;	
 	
 	-- definicao do chip de destino
 	IF operadora_dest = 'op_igual' THEN
-		WHILE true
-		LOOP
-			-- operadora igual do emissor
-			SELECT * INTO chip_dest FROM chip ch
-			WHERE ch.idoperadora = (
-				SELECT idoperadora FROM chip 
-				WHERE idnumero = chip_rec
-				ORDER BY random() LIMIT 1
-			);			
-			IF (SELECT li.data FROM ligacao li 
-			WHERE chip_receptor = chip_dest.idnumero 
-			AND (li.data >= ts_ini AND li.data <= ts_fim) LIMIT 1) 
-			IS NULL THEN
-				EXIT;
-			END IF;			
-		END LOOP;
+		SELECT * INTO chip_dest FROM chip ch
+		WHERE ch.idoperadora = (
+			SELECT idoperadora FROM chip 
+			WHERE idnumero = chip_rec
+		) AND ch.idnumero != chip_rec
+		AND ch.ativo = 'S'
+		ORDER BY random() LIMIT 1;
 	ELSE
-		WHILE true
-		LOOP
-		-- operadora diferente do emissor
-			SELECT * INTO chip_dest FROM chip ch
-			WHERE ch.idoperadora != (
-				SELECT idoperadora FROM chip 
-					WHERE idnumero = chip_rec
-				ORDER BY random() LIMIT 1
-			);
-			IF (SELECT li.data FROM ligacao li 
-			WHERE chip_receptor = chip_dest.idnumero 
-			AND (li.data >= ts_ini AND li.data <= ts_fim) LIMIT 1) 
-			IS NULL THEN
-				EXIT;
-			END IF;			
-		END LOOP;	
+		SELECT * INTO chip_dest FROM chip ch
+		WHERE ch.idoperadora != (
+			SELECT idoperadora FROM chip 
+			WHERE idnumero = chip_rec
+		) AND ch.ativo = 'S'
+		ORDER BY random() LIMIT 1;
 	END IF;
-		
+			
 	-- definicao do espacamento entre as ligacoes
-	espacamento := val_ToMin(25);
+	espacamento := val_ToMin((random()*(((24/n_ligacoes)*10)-0.5)+0.5)::NUMERIC);
+		
+	-- extração da duracao da ultima ligacao do chip
+	SELECT li.duracao INTO ts_ultimaLig 
+	FROM ligacao li
+	WHERE li.chip_emissor = chip_rec
+	ORDER BY li.data DESC LIMIT 1;
 	
-	-- definicao da data da ligacao
-	data_lig := ts_ini + espacamento;
+	-- definicao da duracao da ultima ligacao
+	IF ts_ultimaLig IS NULL THEN
+		data_lig := ts_ini + espacamento;
+	ELSE
+		data_lig := ts_ini + espacamento + ts_ultimaLig;
+	END IF;
 	
 	-- se a ligacao é em roaming ou nao 
 	IF (FLOOR(random()*(10-1+1))+1) > 9 THEN
@@ -524,12 +516,11 @@ BEGIN
 		uf_dest,
 		duracao
 	);
-	COMMIT;
 END $$;
 
 
 -- PROCEDURE QUE POVOA LIGACOES EM UM MES E ANO ESPECIFICOS
-CREATE OR REPLACE PROCEDURE povoar_ligacoes(ano INT, mes VARCHAR)
+CREATE OR REPLACE PROCEDURE povoar_ligacoes(ano INT, mes INT)
 LANGUAGE plpgsql
 AS $$
 DECLARE
@@ -541,9 +532,14 @@ DECLARE
 	num_liga INT = 0;	
 	num_liga_out INT = 0;
 	num_liga_in INT = 0;
+	str_ini VARCHAR(7);
 BEGIN
-	
-	data_ini := ano ||'-' || mes || '-01';	
+	IF mes < 10 THEN
+		str_ini := ano ||'-0' || mes ;
+	ELSE
+		str_ini := ano ||'-' || mes ;
+	END IF;
+	data_ini := str_ini || '-01';	
 	data_fim := ultimo_dia(data_ini);
 	
 	-- selecao de todos os chips pertinentes a clientes ativos em loop
@@ -553,13 +549,14 @@ BEGIN
 	WHERE cl.cancelado = 'N'
 	LOOP
 		count_dias = CAST((EXTRACT (DAY FROM data_fim)) AS INT);
-		FOR i IN 1..count_dias
+		FOR i IN 1..count_dias BY 1
 		LOOP
+			raise notice '%', i;
 			-- definicao da data da ligacao
 			IF i < 10 THEN
-				data_lig = ano ||'-' || mes || '-0' || i;
+				data_lig := str_ini || '-0' || i;
 			ELSE
-				data_lig = ano ||'-' || mes || '-' || i;			 	
+				data_lig := str_ini || '-' || i;			 	
 			END IF;
 			
 			-- definicao do numero de ligacoes para cada operadora 
@@ -569,25 +566,19 @@ BEGIN
 			IF num_liga_in = 0 THEN
 				num_liga_in = 1;
 			END IF;
-			IF num_liga_out = 0 THEN
-				num_liga_out = 1;
-			END IF;
 			
-			FOR i IN 1..num_liga_out
+			FOR j IN 1..num_liga_out BY 1
 			LOOP
 				CALL gerar_ligacao(chip.idnumero, data_lig, 'op_igual', num_liga);
 			END LOOP;
 			
-			FOR i IN 1..num_liga_in
+			FOR l IN 1..num_liga_in BY 1
 			LOOP
 				CALL gerar_ligacao(chip.idnumero, data_lig, 'op_diferente', num_liga);
 			END LOOP;
 		END LOOP;
 	END LOOP;
 END $$;
-
-call povoar_ligacoes(2018, '01');
-
 
 
 --REQUISITO 8
