@@ -39,16 +39,24 @@ LANGUAGE plpgsql;
 
 
 -- retorna um numero inteiro para cada minuto de uma variavel time
-CREATE OR REPLACE FUNCTION int_ToMin(inteiro INT)
+CREATE OR REPLACE FUNCTION val_ToMin(valor NUMERIC)
 RETURNS TIME
 AS $$
 DECLARE
 	minutos TIME = '00:00:00';
+	inteiro INT;
+	segundos TIME;
 BEGIN
+	inteiro := FLOOR(valor);
+	segundos := '00:00:' || CAST ((((valor - FLOOR(valor))*6)*10) AS INT);
+	
+	-- minutos
 	FOR i IN 1..inteiro BY 1
 	LOOP
 		minutos := minutos + '00:01:00';
 	END LOOP;
+	
+	minutos = minutos::interval + segundos::interval;
 	RETURN minutos;
 END $$ 
 LANGUAGE plpgsql;
@@ -227,8 +235,8 @@ BEGIN
 		pl := get_plano(chip.idnumero);
 
 		-- reset das variaveis da fatura de acordo com o dados do plano
-		minIn_dispo := int_ToMin(pl.fminin);
-		minout_dispo := int_toMin(pl.fminout);
+		minIn_dispo := val_ToMin(pl.fminin);
+		minout_dispo := val_ToMin(pl.fminout);
 
 		minIn_usado :=  '00:00:00';
 		minOut_usado := '00:00:00';
@@ -398,6 +406,9 @@ LANGUAGE plpgsql
 AS $$
 DECLARE
 	num_minutos NUMERIC;
+	chip_dest RECORD;
+	ts_ini TIMESTAMP;
+	ts_fim TIMESTAMP;
 	duracao TIME;
 	tipo INT;
 BEGIN
@@ -413,11 +424,62 @@ BEGIN
 		-- ligacao de 1h a 2h
 		num_minutos = ROUND( CAST(FLOAT8 (random()*(120-60)+60) AS NUMERIC), 2);
 	END IF;
-		
 	
+	-- definicao do timestamp de inicio e fim da ligacao
+	SELECT li.data INTO ts_ini
+	FROM ligacao li
+	WHERE (
+		li.data >= (dia || ' 00:00:00')::timestamp 
+		AND li.data <= (dia || ' 23:59:59')::timestamp
+	) 
+	AND li.chip_emissor = chip
+	ORDER BY li.data DESC LIMIT 1;
+
+	-- caso nao exista ligacao no dia o timestamp inicia as 0 horas
+	IF ts_ini IS NULL THEN
+		ts_ini := dia || ' 00:00:00';
+	END IF;
 	
-	RAISE NOTICE '% %', tipo, num_minutos; 
+	ts_fim := ts_ini + val_ToMin(num_minutos);
+	
+	-- definicao do chip de destino
+	IF operadora_dest = 'op_igual' THEN
+		WHILE true
+		LOOP
+			SELECT * INTO chip_dest FROM chip ch
+			WHERE ch.idoperador = chip.idoperadora
+			
+			IF NOT ((
+				SELECT * FROM ligacao li 
+				WHERE chip_receptor = chip_dest.idnumero 
+				AND (li.data >= ts_ini AND li.data <= ts_fim) LIMIT 1
+			) IS NULL) THEN
+				RAISE NOTICE 			
+			END IF;
+			
+			EXIT		
+			
+		END LOOP
+	--ELSE 
+	
+	END IF;
 END $$;
+
+call gerar_ligacao('11985119823', '2020-11-08', 'op_igual')
+select * from ligacao where chip_emissor = '11985119823' order by data desc
+
+SELECT li.data 
+FROM ligacao li
+WHERE (
+	li2.data >= ('2020-07-03' || ' 00:00:00')::timestamp 
+	AND li2.data <= ('2020-07-03' || ' 23:59:59')::timestamp
+) 
+AND li.chip_emissor = '11985119823'
+ORDER BY li.data DESC LIMIT 1;
+
+select * from ligacao 
+where chip_emissor = '11985119823'
+order by data desc 
 
 
 
@@ -426,7 +488,7 @@ CREATE OR REPLACE PROCEDURE povoar_ligacoes(ano INT, mes INT)
 LANGUAGE plpgsql
 AS $$
 DECLARE
-	data_ini DATE = ano ||'-' || mes || '-01';
+	data_ini DATE;
 	data_fim DATE;
 	data_lig DATE;
 	count_dias INT;
@@ -435,6 +497,10 @@ DECLARE
 	num_liga_out INT = 0;
 	num_liga_in INT = 0;
 BEGIN
+	
+	IF mes < 10 THEN 
+		data_ini := ano ||'-' || mes || '-01' 
+	END IF; 
 	data_fim := ultimo_dia(data_ini);
 	
 	-- selecao de todos os chips pertinentes a clientes ativos em loop
@@ -459,7 +525,9 @@ BEGIN
 			IF num_liga_out = 0 THEN
 				num_liga_out = 1;
 			END IF;
-						
+			
+			CALL gerar_ligacao(chip.idnumero, data_lig, 'op_igual');
+			EXIT;
 			--FOR i IN 1..num_liga_out
 				-- gerar_ligacao(chip.idnumero, data_lig, 'op_igual');
 			--END LOOP;
@@ -468,9 +536,13 @@ BEGIN
 				-- gerar_ligacao(chip.idnumero, data_lig, 'op_diferente');
 			--END LOOP;
 			
-		END LOOP;		
+		END LOOP;
+		EXIT;
 	END LOOP;
 END $$;
+
+call povoar_ligacoes(2018, 5);
+
 
 
 
