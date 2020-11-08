@@ -1,5 +1,5 @@
 -- ######################################################## --
---					 FUNCOES DE SUPORTE					    --
+--					          FUNCOES DE SUPORTE				       	    --
 -- ######################################################## --
 
 -- recebe uma data e retorna a data com o ultimo dia do mes dessa data.
@@ -114,7 +114,7 @@ LANGUAGE plpgsql;
 
 
 -- ######################################################## --
---						 REQUISITOS						    --
+--					            	 REQUISITOS			        			    --
 -- ######################################################## --
 
 
@@ -286,6 +286,9 @@ BEGIN
 		
 		-- contagem dos segundos acumulados por todas as ligacoes
 		exced := exced +  minTo_Val(taxa_Exced, seg_acumulados, true);
+
+		-- definicao do total da fatura
+		total := total + exced + roaming;
 	
 		-- criacao da fatura para o chip
 		INSERT INTO fatura(
@@ -295,7 +298,8 @@ BEGIN
 			tot_min_int, 
 			tot_min_ext, 
 			tx_min_exced, 
-			tx_roaming, total, 
+			tx_roaming, 
+			total, 
 			pago
 		) 
 		VALUES (
@@ -341,7 +345,7 @@ END $$;
 CREATE TRIGGER TG_PERMITE_LIGACAO
 AFTER INSERT ON LIGACAO
 FOR EACH ROW
-EXECUTE PROCEDURE FN_PERMITE_LIGACAO()
+EXECUTE PROCEDURE FN_PERMITE_LIGACAO();
 
 
 
@@ -363,7 +367,7 @@ END $$;
 CREATE TRIGGER TG_associar_num_cliente
 AFTER INSERT ON cliente_chip
 FOR EACH ROW
-EXECUTE PROCEDURE FN_associar_num_cliente()
+EXECUTE PROCEDURE FN_associar_num_cliente();
 
 
 -- REQUISITO 6
@@ -396,7 +400,7 @@ END $$;
 CREATE TRIGGER TG_DISPONIBILIZA_NUMBER_3
 AFTER UPDATE OF CANCELADO ON CLIENTE
 FOR EACH ROW
-EXECUTE PROCEDURE FN_DISPONIBILIZA_NUMERO_3()
+EXECUTE PROCEDURE FN_DISPONIBILIZA_NUMERO_3();
 
 -- REQUISITO 7
 
@@ -422,11 +426,14 @@ DECLARE
 	
 BEGIN
 	-- definicao da duracao da ligacao
-	tipo = FLOOR(random()*(10-1+1))+1;
-	IF tipo <= 6 THEN
-		-- ligacao de 30s a 20 min
-		num_minutos = ROUND( CAST(FLOAT8 (random()*(20-0.5)+0.5) AS NUMERIC), 2);
-	ELSIF tipo <= 9 THEN
+	tipo = FLOOR(random()*(100-1+1))+1;
+	IF tipo <= 40 THEN
+		-- ligacao de 30s a 10 min
+		num_minutos = ROUND( CAST(FLOAT8 (random()*(10-0.5)+0.5) AS NUMERIC), 2);
+	ELSIF tipo <= 85 THEN
+		-- ligacao de 20min a 10 min
+		num_minutos = ROUND( CAST(FLOAT8 (random()*(20-10)+10) AS NUMERIC), 2);
+	ELSIF tipo <= 97 THEN
 		-- ligacao de 20 min a 1h
 		num_minutos = ROUND( CAST(FLOAT8 (random()*(60-20)+20) AS NUMERIC), 2);
 	ELSE
@@ -582,6 +589,8 @@ END $$;
 
 
 --REQUISITO 8
+
+
 
 CREATE OR REPLACE FUNCTION FN_INATIVA_CHIP_DEVEDOR()
 RETURNS TRIGGER
