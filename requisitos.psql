@@ -39,16 +39,24 @@ LANGUAGE plpgsql;
 
 
 -- retorna um numero inteiro para cada minuto de uma variavel time
-CREATE OR REPLACE FUNCTION int_ToMin(inteiro INT)
+CREATE OR REPLACE FUNCTION val_ToMin(valor NUMERIC)
 RETURNS TIME
 AS $$
 DECLARE
 	minutos TIME = '00:00:00';
+	inteiro INT;
+	segundos TIME;
 BEGIN
+	inteiro := FLOOR(valor);
+	segundos := '00:00:' || CAST ((((valor - FLOOR(valor))*6)*10) AS INT);
+	
+	-- minutos
 	FOR i IN 1..inteiro BY 1
 	LOOP
 		minutos := minutos + '00:01:00';
 	END LOOP;
+	
+	minutos = minutos::interval + segundos::interval;
 	RETURN minutos;
 END $$ 
 LANGUAGE plpgsql;
@@ -227,8 +235,8 @@ BEGIN
 		pl := get_plano(chip.idnumero);
 
 		-- reset das variaveis da fatura de acordo com o dados do plano
-		minIn_dispo := int_ToMin(pl.fminin);
-		minout_dispo := int_toMin(pl.fminout);
+		minIn_dispo := val_ToMin(pl.fminin);
+		minout_dispo := val_ToMin(pl.fminout);
 
 		minIn_usado :=  '00:00:00';
 		minOut_usado := '00:00:00';
@@ -342,7 +350,6 @@ CREATE OR REPLACE FUNCTION FN_associar_num_cliente()
 RETURNS TRIGGER
 LANGUAGE PLPGSQL
 AS $$
-DECLARE
 BEGIN
 	IF (SELECT cli.cancelado FROM cliente cli WHERE cli.idcliente = NEW.idcliente) = 'N' THEN
 		RAISE NOTICE 'ASSOCIAÇÃO FEITA COM SUCESSO';
@@ -360,33 +367,30 @@ EXECUTE PROCEDURE FN_associar_num_cliente()
 
 
 -- REQUISITO 6
-
 CREATE OR REPLACE FUNCTION FN_DISPONIBILIZA_NUMERO_3()
 RETURNS TRIGGER
 LANGUAGE PLPGSQL
 AS $$
 DECLARE
-	STATUS VARCHAR;
-	INFO_CLIENTE RECORD;
+	CHIP_ASSOCIADO RECORD;
 BEGIN
-	SELECT CANCELADO INTO STATUS FROM CLIENTE WHERE IDCLIENTE = OLD.IDCLIENTE;
-	SELECT CLIENTE.IDCLIENTE,CHIP.IDNUMERO INTO INFO_CLIENTE FROM CLIENTE JOIN CLIENTE_CHIP ON CLIENTE.IDCLIENTE = CLIENTE_CHIP.IDCLIENTE JOIN CHIP ON CLIENTE_CHIP.IDNUMERO = CHIP.IDNUMERO WHERE CLIENTE.IDCLIENTE = OLD.IDCLIENTE;
-	-- VERIFICA O STATUS DO CLIENTE
-	
-	IF STATUS = 'S' THEN
-		-- TROCANDO OS STATUS DO NUMERO
-		UPDATE CHIP SET ATIVO = 'N', DISPONIVEL = 'S'
-		WHERE IDNUMERO = INFO_CLIENTE.IDNUMERO;
-		
-		-- DESFAZENDO RELAÇÃO ENTRE CLIENTE->CHIP
-		DELETE FROM CLIENTE_CHIP
-		WHERE CLIENTE_CHIP.IDNUMERO = INFO_CLIENTE.IDNUMERO AND CLIENTE_CHIP.IDCLIENTE = INFO_CLIENTE.IDCLIENTE;
-		
-		RETURN NULL;
-	
+	IF NEW.CANCELADO = 'S' THEN
+		FOR CHIP_ASSOCIADO IN 
+		SELECT * FROM CLIENTE_CHIP CC
+		WHERE CC.IDCLIENTE = NEW.IDCLIENTE
+		LOOP
+			-- DESFAZENDO RELAÇÃO ENTRE CLIENTE E CHIP
+			DELETE FROM CLIENTE_CHIP CC 
+			WHERE CC.IDNUMERO = CHIP_ASSOCIADO.IDNUMERO;		
+			
+			-- TROCANDO OS STATUS DO NUMERO
+			UPDATE CHIP SET ATIVO = 'N', DISPONIVEL = 'S'
+			WHERE IDNUMERO = CHIP_ASSOCIADO.IDNUMERO;
+		END LOOP;
+		RETURN NEW;
 	ELSE
-		RAISE EXCEPTION'O CLIENTE ESTA ATIVO NA BASE DE DADOS';
-	END IF;
+		RETURN NEW;
+	END IF;	
 END $$;
 
 CREATE TRIGGER TG_DISPONIBILIZA_NUMBER_3
@@ -397,13 +401,25 @@ EXECUTE PROCEDURE FN_DISPONIBILIZA_NUMERO_3()
 -- REQUISITO 7
 
 -- PROCEDURE QUE POVOA LIGACOES EM UM MES E ANO ESPECIFICOS
-CREATE OR REPLACE PROCEDURE gerar_ligacao(chip VARCHAR, dia DATE, operadora_dest VARCHAR)
+CREATE OR REPLACE PROCEDURE gerar_ligacao(chip_rec VARCHAR, dia DATE, operadora_dest VARCHAR, n_ligacoes INT)
 LANGUAGE plpgsql
 AS $$
 DECLARE
+	--dados de controle
 	num_minutos NUMERIC;
-	duracao TIME;
+	chip_dest RECORD;
+	ts_ini TIMESTAMP;
+	ts_fim TIMESTAMP;
+	ts_ultimaLig TIME;
+	espacamento TIME;
 	tipo INT;
+	
+	-- dados do insert
+	data_lig TIMESTAMP;
+	duracao TIME;
+	uf_orig VARCHAR(2);
+	uf_dest VARCHAR(2);
+	
 BEGIN
 	-- definicao da duracao da ligacao
 	tipo = FLOOR(random()*(10-1+1))+1;
@@ -417,12 +433,90 @@ BEGIN
 		-- ligacao de 1h a 2h
 		num_minutos = ROUND( CAST(FLOAT8 (random()*(120-60)+60) AS NUMERIC), 2);
 	END IF;
+	
+	-- definicao do timestamp da primeira ligacao e ultima no dia
+	SELECT li.data INTO ts_ini
+	FROM ligacao li
+	WHERE (
+		li.data >= (dia || ' 00:00:00')::timestamp 
+		AND li.data <= (dia || ' 23:59:59')::timestamp
+	) 
+	AND li.chip_emissor = chip_rec
+	ORDER BY li.data DESC LIMIT 1;
+	
+	-- caso nao exista ligacao no dia o timestamp inicia as 0 horas
+	IF ts_ini IS NULL THEN
+		ts_ini := dia || ' 00:00:00';
+	END IF;
 		
-	
-	
-	RAISE NOTICE '% %', tipo, num_minutos; 
-END $$;
+	-- definicao da duracao da ligacao
+	duracao := val_ToMin(num_minutos);
 
+	ts_fim := ts_ini + duracao;	
+	
+	-- definicao do chip de destino
+	IF operadora_dest = 'op_igual' THEN
+		SELECT * INTO chip_dest FROM chip ch
+		WHERE ch.idoperadora = (
+			SELECT idoperadora FROM chip 
+			WHERE idnumero = chip_rec
+		) AND ch.idnumero != chip_rec
+		AND ch.ativo = 'S'
+		ORDER BY random() LIMIT 1;
+	ELSE
+		SELECT * INTO chip_dest FROM chip ch
+		WHERE ch.idoperadora != (
+			SELECT idoperadora FROM chip 
+			WHERE idnumero = chip_rec
+		) AND ch.ativo = 'S'
+		ORDER BY random() LIMIT 1;
+	END IF;
+			
+	-- definicao do espacamento entre as ligacoes
+	espacamento := val_ToMin((random()*(((24/n_ligacoes)*10)-0.5)+0.5)::NUMERIC);
+		
+	-- extração da duracao da ultima ligacao do chip
+	SELECT li.duracao INTO ts_ultimaLig 
+	FROM ligacao li
+	WHERE li.chip_emissor = chip_rec
+	ORDER BY li.data DESC LIMIT 1;
+	
+	-- definicao da duracao da ultima ligacao
+	IF ts_ultimaLig IS NULL THEN
+		data_lig := ts_ini + espacamento;
+	ELSE
+		data_lig := ts_ini + espacamento + ts_ultimaLig;
+	END IF;
+	
+	-- se a ligacao é em roaming ou nao 
+	IF (FLOOR(random()*(10-1+1))+1) > 9 THEN
+		SELECT es.uf INTO uf_orig FROM estado es 
+		WHERE es.ddd != (SUBSTRING (chip_rec FROM 1 FOR 2))::INTEGER;
+	ELSE
+		SELECT es.uf INTO uf_orig FROM estado es 
+		WHERE es.ddd = (SUBSTRING (chip_rec FROM 1 FOR 2))::INTEGER;
+	END IF;
+	
+	-- definicao da uf de destino
+	SELECT es.uf INTO uf_dest FROM estado es 
+	WHERE es.ddd = (SUBSTRING (chip_dest.idnumero FROM 1 FOR 2))::INTEGER;
+	
+	INSERT INTO ligacao(
+		data,
+		chip_emissor,
+		uforigem,
+		chip_receptor,
+		ufdestino,
+		duracao
+	) VALUES (
+		data_lig,
+		chip_rec,
+		uf_orig,
+		chip_dest.idnumero,
+		uf_dest,
+		duracao
+	);
+END $$;
 
 
 -- PROCEDURE QUE POVOA LIGACOES EM UM MES E ANO ESPECIFICOS
@@ -430,7 +524,7 @@ CREATE OR REPLACE PROCEDURE povoar_ligacoes(ano INT, mes INT)
 LANGUAGE plpgsql
 AS $$
 DECLARE
-	data_ini DATE = ano ||'-' || mes || '-01';
+	data_ini DATE;
 	data_fim DATE;
 	data_lig DATE;
 	count_dias INT;
@@ -438,7 +532,14 @@ DECLARE
 	num_liga INT = 0;	
 	num_liga_out INT = 0;
 	num_liga_in INT = 0;
+	str_ini VARCHAR(7);
 BEGIN
+	IF mes < 10 THEN
+		str_ini := ano ||'-0' || mes ;
+	ELSE
+		str_ini := ano ||'-' || mes ;
+	END IF;
+	data_ini := str_ini || '-01';	
 	data_fim := ultimo_dia(data_ini);
 	
 	-- selecao de todos os chips pertinentes a clientes ativos em loop
@@ -448,10 +549,15 @@ BEGIN
 	WHERE cl.cancelado = 'N'
 	LOOP
 		count_dias = CAST((EXTRACT (DAY FROM data_fim)) AS INT);
-		FOR i IN 1..count_dias
+		FOR i IN 1..count_dias BY 1
 		LOOP
+			raise notice '%', i;
 			-- definicao da data da ligacao
-			data_lig = ano ||'-' || mes || i;
+			IF i < 10 THEN
+				data_lig := str_ini || '-0' || i;
+			ELSE
+				data_lig := str_ini || '-' || i;			 	
+			END IF;
 			
 			-- definicao do numero de ligacoes para cada operadora 
 			num_liga = FLOOR(random()*(10-1+1))+1;
@@ -460,22 +566,19 @@ BEGIN
 			IF num_liga_in = 0 THEN
 				num_liga_in = 1;
 			END IF;
-			IF num_liga_out = 0 THEN
-				num_liga_out = 1;
-			END IF;
-						
-			--FOR i IN 1..num_liga_out
-				-- gerar_ligacao(chip.idnumero, data_lig, 'op_igual');
-			--END LOOP;
 			
-			--FOR i IN 1..num_liga_in
-				-- gerar_ligacao(chip.idnumero, data_lig, 'op_diferente');
-			--END LOOP;
+			FOR j IN 1..num_liga_out BY 1
+			LOOP
+				CALL gerar_ligacao(chip.idnumero, data_lig, 'op_igual', num_liga);
+			END LOOP;
 			
-		END LOOP;		
+			FOR l IN 1..num_liga_in BY 1
+			LOOP
+				CALL gerar_ligacao(chip.idnumero, data_lig, 'op_diferente', num_liga);
+			END LOOP;
+		END LOOP;
 	END LOOP;
 END $$;
-
 
 
 --REQUISITO 8
