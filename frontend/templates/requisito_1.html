@@ -1,0 +1,33 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Requisito 1</title>
+</head>
+<body>
+  <h4>Requisito 1</h4>
+  <form method="POST">
+    <div>
+      <label for="operadora">Escolha uma operadora:</label>
+      <select id="operadora">
+        {% for operadora in operadoras %}
+          <option name="operadora" value="{{ operadora[1] }}">{{ operadora[1] }}</option>
+        {% endfor %}
+      </select>
+
+      <br>
+
+      <label for="operadora">Escolha uma estado:</label>
+      <select id="estado">
+        {% for estado in estados %}
+          <option name="estado" value="{{ estado[0] }}">{{ estado[0] }}</option>
+        {% endfor %}
+      </select> 
+
+      <button type="submit">Enviar</button>
+    </div>
+  </form>
+</body>
+</html>
