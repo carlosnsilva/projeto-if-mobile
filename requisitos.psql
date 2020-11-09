@@ -1,5 +1,5 @@
 -- ######################################################## --
---					 FUNCOES DE SUPORTE					    --
+--					          FUNCOES DE SUPORTE				       	    --
 -- ######################################################## --
 
 -- recebe uma data e retorna a data com o ultimo dia do mes dessa data.
@@ -114,7 +114,7 @@ LANGUAGE plpgsql;
 
 
 -- ######################################################## --
---						 REQUISITOS						    --
+--					            	 REQUISITOS			        			    --
 -- ######################################################## --
 
 
@@ -586,7 +586,6 @@ BEGIN
 		END LOOP;
 	END LOOP;
 END $$;
-
 
 
 --REQUISITO 8
