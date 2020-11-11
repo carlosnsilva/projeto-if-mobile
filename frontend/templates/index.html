@@ -1,12 +1,23 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{{ url_for('static', filename= 'css/style.css') }}">
-    <title>Document</title>
-</head>
-<body>
-    index
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .container {
+        margin-top: 50px;
+    }
+</style>
+{% endblock %}
+
+{% block title %}Index{% endblock %}
+
+{% block content %}
+
+<div class="container">
+    <h1>Projeto BD II</h1>
+    <h3>Alunos</h3>
+    <h4> - Adrianderson Lira</h4>
+    <h4> - Carlos Nunes</h4>
+    <h4> - Henrique Poggi</h4>
+</div>
+{% endblock %}

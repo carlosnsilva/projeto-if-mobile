@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}View 2{% endblock %}
+
+{% block content %}
+<div class="container">
+  <br>
+  <h3>View 2</h3>
+  <br>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th scope="col">Mes</th>
+        <th scope="col">Ano</th>
+        <th scope="col">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for linha in view2 %}
+      <tr>
+        <th scope="row">{{linha[0]}}</th>
+        <td>{{linha[1]}}</td>
+        <td>{{linha[2]}}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

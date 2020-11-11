@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Gerar Ligações{% endblock %}
+
+{% block content %}
+<div class="container">
+  <br>
+  <h3>Ligações</h3>
+  <br>
+
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th scope="col">Data</th>
+        <th scope="col">Chip Emissor</th>
+        <th scope="col">UF Origem</th>
+        <th scope="col">Chip Receptor</th>
+        <th scope="col">UF Destino</th>
+        <th scope="col">Duração</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for ligacao in ligacoes %}
+      <tr>
+        <th scope="row">{{ligacao[0]}}</th>
+        <td>{{ligacao[1]}}</td>
+        <td>{{ligacao[2]}}</td>
+        <td>{{ligacao[3]}}</td>
+        <td>{{ligacao[4]}}</td>
+        <td>{{ligacao[5]}}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

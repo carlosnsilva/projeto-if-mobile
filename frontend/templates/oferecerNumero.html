@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Gerar um número{% endblock %}
+
+{% block content %}
+<div class="container">
+  <br>
+  <a href="{{ url_for('listaOferecerNumero') }}" class="btn btn-primary btn-lg active" role="button"
+    aria-pressed="true">Buscar 5 números</a>
+</div>
+{% endblock %}

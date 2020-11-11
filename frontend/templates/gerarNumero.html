@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Gerar um número{% endblock %}
+
+{% block content %}
+<div class="container">
+  <br>
+  <h4>Requisito 1</h4>
+  <form action="{{ url_for('gerarNumero') }}" method="POST">
+    <div class="form-group">
+      <label for="operadora">Escolha uma operadora:</label>
+      <select id="operadora" name="operadora" class="form-control">
+        {% for operadora in operadoras %}
+        <option value="{{ operadora[0] }}">{{ operadora[1] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="operadora">Escolha um estado:</label>
+      <select id="estado" name="estado" class="form-control">
+        {% for estado in estados %}
+        <option value="{{ estado[0] }}">{{ estado[0] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Gerar</button>
+  </form>
+</div>
+{% endblock %}

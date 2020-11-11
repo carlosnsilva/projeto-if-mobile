@@ -314,7 +314,6 @@ BEGIN
 			'N'
 		);		
 	END LOOP;
-	COMMIT;
 END $$;
 
 
